@@ -2,20 +2,40 @@ import type { LoaderFunctionArgs, ActionFunctionArgs } from "react-router";
 import { qb } from "../lib/qb-client";
 import type { TorrentInfo } from "../lib/types";
 
-export async function loader(): Promise<TorrentInfo[]> {
-  const torrents = await qb.listTorrents();
-  return torrents.map((t) => ({
-    hash: t.hash,
-    name: t.name,
-    progress: t.progress,
-    state: t.state,
-    dlspeed: t.dlspeed,
-    upspeed: t.upspeed,
-    num_seeds: t.num_seeds,
-    num_leechs: (t as any).num_leechs,
-    num_leechers: (t as any).num_leechers,
-    eta: t.eta,
-  }));
+export async function loader(): Promise<TorrentInfo[] | Response> {
+  try {
+    // No filter → all torrents (downloading, seeding, paused, finished)
+    const torrents = await qb.listTorrents({ sort: "added_on", reverse: true });
+    return torrents.map((t) => ({
+      hash: t.hash,
+      name: t.name,
+      progress: t.progress,
+      state: t.state,
+      dlspeed: t.dlspeed,
+      upspeed: t.upspeed,
+      num_seeds: t.num_seeds,
+      num_leechs: t.num_leechs,
+      num_leechers: t.num_leechs,
+      eta: t.eta,
+      size: t.size,
+      save_path: t.save_path,
+      added_on: t.added_on,
+      completion_on: t.completion_on,
+      category: t.category || "",
+      tags: t.tags || "",
+      ratio: t.ratio,
+    }));
+  } catch (e) {
+    return new Response(
+      JSON.stringify({
+        error:
+          e instanceof Error
+            ? e.message
+            : "Failed to list torrents (is qBittorrent running?)",
+      }),
+      { status: 502, headers: { "Content-Type": "application/json" } },
+    );
+  }
 }
 
 export async function action({ request }: ActionFunctionArgs) {

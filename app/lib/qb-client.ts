@@ -1,7 +1,10 @@
 import { QBittorrent } from "@ctrl/qbittorrent";
+import { loadQbConnection } from "./qb-connection";
+
+const initial = loadQbConnection();
 
 export const qb = new QBittorrent({
-  baseUrl: "http://localhost:8080/",
-  username: "admin",
-  password: "Password123",
+  baseUrl: initial.baseUrl,
+  username: initial.username,
+  password: initial.password,
 });

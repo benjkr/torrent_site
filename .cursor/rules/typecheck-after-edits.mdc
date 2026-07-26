@@ -1,0 +1,19 @@
+---
+description: Run TypeScript typecheck after changing website files
+alwaysApply: true
+---
+
+# Typecheck after edits
+
+After any request that changes website/app files (`.ts`, `.tsx`, routes, components, lib, etc.):
+
+1. Run **`bun run typecheck`** before considering the task done.
+2. If typecheck fails, **fix the errors** and re-run until it passes (or report blockers you cannot fix).
+3. Do not skip this for “small” UI tweaks — still typecheck.
+4. Pure docs/rules-only edits (e.g. `.cursor/rules`, markdown with no code) do not require typecheck unless `package.json` / `tsconfig` changed.
+
+Command:
+
+```bash
+bun run typecheck
+```
