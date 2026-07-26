@@ -15,7 +15,7 @@ PID_FILE="$DEV_DIR/dev.pid"
 LOG_FILE="$LOG_DIR/dev.log"
 
 usage() {
-  echo "Usage: $0 {up|down}" >&2
+  echo "Usage: $0 {up|down|status}" >&2
   exit 1
 }
 
@@ -120,6 +120,27 @@ cmd_down() {
   echo "Dev environment is down."
 }
 
+cmd_status() {
+  if compose ps --status running --services 2>/dev/null | grep -qx qbittorrent; then
+    echo "qBittorrent: running  → http://127.0.0.1:8080"
+  else
+    echo "qBittorrent: stopped"
+  fi
+
+  if [[ -f "$PID_FILE" ]]; then
+    local pid
+    pid="$(tr -d '[:space:]' <"$PID_FILE" || true)"
+    if is_pid_alive "$pid"; then
+      echo "App:         running (pid $pid)  → http://127.0.0.1:3000"
+      echo "App log:     $LOG_FILE"
+    else
+      echo "App:         stopped (stale PID $pid)"
+    fi
+  else
+    echo "App:         stopped"
+  fi
+}
+
 if [[ $# -ne 1 ]]; then
   usage
 fi
@@ -127,5 +148,6 @@ fi
 case "$1" in
   up) cmd_up ;;
   down) cmd_down ;;
+  status) cmd_status ;;
   *) usage ;;
 esac
