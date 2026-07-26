@@ -7,7 +7,6 @@ import {
   hasLibraryNew,
   LIBRARY_NEW_EVENT,
 } from "@/lib/download-notify";
-import { useQbStatus } from "@/lib/qb-status";
 
 function useLibraryNew() {
   const location = useLocation();
@@ -55,51 +54,6 @@ const glassShell = cn(
   "shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.25)]",
   "backdrop-blur-2xl backdrop-saturate-150",
 );
-
-function QbStatusIndicator() {
-  const status = useQbStatus();
-
-  if (status.state === "loading") return null;
-
-  if (status.state === "online") {
-    return (
-      <Badge
-        variant="secondary"
-        className={cn(
-          "h-8 gap-1.5 border-0 px-2.5 text-xs font-medium",
-          "bg-emerald-400/15 text-emerald-200 hover:bg-emerald-400/20",
-          glassShell,
-        )}
-        title={`qBittorrent ${status.version}`}
-        aria-label={`qBittorrent online, version ${status.version}`}
-      >
-        <span className="relative flex size-1.5">
-          <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
-        </span>
-        {status.version}
-      </Badge>
-    );
-  }
-
-  return (
-    <Badge
-      variant="secondary"
-      className={cn(
-        "h-8 gap-1.5 border-0 px-2.5 text-xs font-medium",
-        "bg-red-400/15 text-red-200 hover:bg-red-400/20",
-        glassShell,
-      )}
-      title={status.error}
-      aria-label={`qBittorrent offline: ${status.error}`}
-    >
-      <span className="relative flex size-1.5">
-        <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-400 opacity-75" />
-        <span className="relative inline-flex size-1.5 rounded-full bg-red-500" />
-      </span>
-      Offline
-    </Badge>
-  );
-}
 
 function navLinkClass(isActive: boolean, extra?: string) {
   return cn(
@@ -189,9 +143,7 @@ export function TopNav({ disabled }: { disabled: boolean }) {
             Settings
           </NavLink>
         </nav>
-        <div className="pointer-events-auto flex justify-end">
-          <QbStatusIndicator />
-        </div>
+        <div aria-hidden />
       </div>
     </header>
   );

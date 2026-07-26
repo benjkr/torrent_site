@@ -11,6 +11,7 @@ import {
 import "./index.css";
 import { DebugPagesNav } from "@/components/DebugPagesNav";
 import { QbOfflineBanner } from "@/components/QbOfflineBanner";
+import { StatusCorner } from "@/components/StatusCorner";
 import { TopNav } from "@/components/TopNav";
 import { MaindataProvider } from "./lib/maindata";
 import { QbDebugProvider } from "./lib/qb-debug";
@@ -39,6 +40,7 @@ function AppShell() {
       <main className="mx-auto max-w-7xl px-4 py-6">
         <Outlet />
       </main>
+      <StatusCorner />
       <DebugPagesNav />
     </>
   );

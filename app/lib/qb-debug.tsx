@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 
-const STORAGE_KEY = "torrent_site:debug:force_qb_offline";
+const FORCE_OFFLINE_KEY = "torrent_site:debug:force_qb_offline";
 
 export const FORCE_QB_OFFLINE_ERROR =
   "[debug] Forced qBittorrent offline";
@@ -23,7 +23,7 @@ const QbDebugContext = createContext<QbDebugValue | null>(null);
 function readStoredForceOffline(): boolean {
   if (!import.meta.env.DEV) return false;
   try {
-    return sessionStorage.getItem(STORAGE_KEY) === "1";
+    return sessionStorage.getItem(FORCE_OFFLINE_KEY) === "1";
   } catch {
     return false;
   }
@@ -31,8 +31,8 @@ function readStoredForceOffline(): boolean {
 
 function writeStoredForceOffline(value: boolean) {
   try {
-    if (value) sessionStorage.setItem(STORAGE_KEY, "1");
-    else sessionStorage.removeItem(STORAGE_KEY);
+    if (value) sessionStorage.setItem(FORCE_OFFLINE_KEY, "1");
+    else sessionStorage.removeItem(FORCE_OFFLINE_KEY);
   } catch {
     // ignore
   }
