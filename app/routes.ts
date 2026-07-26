@@ -28,4 +28,5 @@ export default [
   route("/api/download_file", "./routes/api.download_file.ts"),
   route("/api/settings", "./routes/api.settings.ts"),
   route("/api/qb_status", "./routes/api.qb_status.ts"),
+  route("/api/app_version", "./routes/api.app_version.ts"),
 ] satisfies RouteConfig;

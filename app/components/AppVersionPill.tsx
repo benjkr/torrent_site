@@ -1,4 +1,6 @@
-import { getAppVersion } from "@/lib/app-version";
+import { useEffect, useState } from "react";
+
+import { getAppVersion, type AppVersion } from "@/lib/app-version";
 import { cn } from "@/lib/utils";
 
 const engravedPill = cn(
@@ -9,7 +11,50 @@ const engravedPill = cn(
 
 /** Always-visible engraved app version pill (tag · short commit). */
 export function AppVersionPill() {
-  const { tag, commit } = getAppVersion();
+  const baked = getAppVersion();
+  const [version, setVersion] = useState<AppVersion>(baked);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+
+    let cancelled = false;
+
+    const load = () => {
+      void fetch("/api/app_version")
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: AppVersion | null) => {
+          if (cancelled || !data?.tag || !data?.commit) return;
+          setVersion((prev) =>
+            prev.tag === data.tag && prev.commit === data.commit
+              ? prev
+              : { tag: data.tag, commit: data.commit },
+          );
+        })
+        .catch(() => {
+          // keep last known / baked value
+        });
+    };
+
+    load();
+
+    const onFocus = () => load();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") load();
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    const interval = window.setInterval(load, 5000);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  const { tag, commit } = version;
 
   return (
     <span
