@@ -1,0 +1,12 @@
+---
+description: Never use browser tools unless the user explicitly asks
+alwaysApply: true
+---
+
+# Browser tools
+
+Do **not** use browser tools (cursor-ide-browser MCP: navigate, snapshot, screenshot, click, lock, CDP, etc.) unless the user explicitly tells you to.
+
+- Do not open or inspect pages “to verify” UI changes on your own.
+- Do not take screenshots or run browser automation unless asked.
+- If visual verification seems useful, ask first or wait for the user to request it.

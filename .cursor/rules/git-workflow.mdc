@@ -1,0 +1,24 @@
+---
+description: Git status summaries and feature-scoped commits (confirm plan first)
+alwaysApply: true
+---
+
+# Git status replies
+
+When the user asks for **git status** (or equivalent):
+
+1. Still inspect the working tree (`git status`, and a brief diff overview if needed).
+2. Reply with a **short feature-level summary** of what changed — what the user would notice or what capability was added/changed — not a file list or implementation tour.
+3. Prefer a few sentences or bullets framed as features/outcomes (e.g. “app version + qB status now sit top-left”, “git tag/commit baked into builds”, “browser tools blocked unless asked”).
+4. Keep file paths and low-level details secondary; mention them only when useful for clarity.
+5. Note branch / ahead-behind / staged vs unstaged only if relevant.
+
+# Git commits
+
+When the user asks to **commit**:
+
+1. Group changes by **feature / outcome**. Prefer **one commit per feature**.
+2. **Combine related changes** into the same commit when they are part of one feature (e.g. bake-in + version pill UI for “show app version”).
+3. **Before committing anything**, propose the commit plan to the user: list each intended commit with a short feature-level message and what it includes. Wait for confirmation (or edits) before running `git commit`.
+4. Do not create commits until the user agrees with the plan.
+5. Still follow the usual commit safety rules (no secrets, no force/amend unless asked, HEREDOC messages, etc.).
