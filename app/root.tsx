@@ -10,6 +10,7 @@ import {
 
 import "./index.css";
 import { DebugPagesNav } from "@/components/DebugPagesNav";
+import { DevBookmark } from "@/components/DevBookmark";
 import { QbOfflineBanner } from "@/components/QbOfflineBanner";
 import { StatusCorner } from "@/components/StatusCorner";
 import { TopNav } from "@/components/TopNav";
@@ -41,7 +42,8 @@ function AppShell() {
         <Outlet />
       </main>
       <StatusCorner />
-      <DebugPagesNav />
+      {import.meta.env.DEV ? <DevBookmark /> : null}
+      {import.meta.env.DEV ? <DebugPagesNav /> : null}
     </>
   );
 }
@@ -87,13 +89,17 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function Root() {
-  return (
-    <QbDebugProvider>
-      <MaindataProvider>
-        <QbStatusProvider>
-          <AppShell />
-        </QbStatusProvider>
-      </MaindataProvider>
-    </QbDebugProvider>
+  const app = (
+    <MaindataProvider>
+      <QbStatusProvider>
+        <AppShell />
+      </QbStatusProvider>
+    </MaindataProvider>
+  );
+
+  return import.meta.env.DEV ? (
+    <QbDebugProvider>{app}</QbDebugProvider>
+  ) : (
+    app
   );
 }

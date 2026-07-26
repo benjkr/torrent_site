@@ -65,8 +65,14 @@ export function QbDebugProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const PROD_QB_DEBUG: QbDebugValue = {
+  forceOffline: false,
+  setForceOffline: () => {},
+};
+
 export function useQbDebug(): QbDebugValue {
   const ctx = useContext(QbDebugContext);
+  if (!import.meta.env.DEV) return PROD_QB_DEBUG;
   if (!ctx) {
     throw new Error("useQbDebug must be used within QbDebugProvider");
   }

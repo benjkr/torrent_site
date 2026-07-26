@@ -308,22 +308,24 @@ export default function LibraryTable({
         </div>
       )}
 
-      <LibraryDebugPanel
-        chromeView={chromeView}
-        onChromeViewChange={setChromeView}
-        cardView={cardView}
-        onCardViewChange={setCardView}
-        progressColorMode={progressColorMode}
-        onProgressColorModeChange={setProgressColorMode}
-        progressChrome={progressChrome}
-        onProgressChromeChange={setProgressChrome}
-        completeAction={completeAction}
-        onCompleteActionChange={setCompleteAction}
-        seedOffStyle={seedOffStyle}
-        onSeedOffStyleChange={setSeedOffStyle}
-        filesViewerStyle={filesViewerStyle}
-        onFilesViewerStyleChange={setFilesViewerStyle}
-      />
+      {isDev ? (
+        <LibraryDebugPanel
+          chromeView={chromeView}
+          onChromeViewChange={setChromeView}
+          cardView={cardView}
+          onCardViewChange={setCardView}
+          progressColorMode={progressColorMode}
+          onProgressColorModeChange={setProgressColorMode}
+          progressChrome={progressChrome}
+          onProgressChromeChange={setProgressChrome}
+          completeAction={completeAction}
+          onCompleteActionChange={setCompleteAction}
+          seedOffStyle={seedOffStyle}
+          onSeedOffStyleChange={setSeedOffStyle}
+          filesViewerStyle={filesViewerStyle}
+          onFilesViewerStyleChange={setFilesViewerStyle}
+        />
+      ) : null}
     </div>
   );
 }
