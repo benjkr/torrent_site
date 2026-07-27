@@ -3,10 +3,15 @@ import { BugIcon, CopyIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type {
+  SearchResultsMeta,
   SearchResultsRows,
   SearchResultsView,
 } from "@/components/SearchResultsTable";
-import type { SearchFiltersStyle, SearchDrawerHeight } from "@/components/SearchBar";
+import type {
+  SearchBarChrome,
+  SearchFiltersStyle,
+  SearchDrawerHeight,
+} from "@/components/SearchBar";
 import type { TorrentFilesViewerStyle } from "@/components/TorrentFilesHoverCard";
 import { cn } from "@/lib/utils";
 import type { SearchDebugInfo } from "@/lib/types";
@@ -29,8 +34,12 @@ interface SearchDebugPanelProps {
   onResultsViewChange: (v: SearchResultsView) => void;
   resultsRows: SearchResultsRows;
   onResultsRowsChange: (v: SearchResultsRows) => void;
+  resultsMeta: SearchResultsMeta;
+  onResultsMetaChange: (v: SearchResultsMeta) => void;
   filesViewerStyle: TorrentFilesViewerStyle;
   onFilesViewerStyleChange: (v: TorrentFilesViewerStyle) => void;
+  barChrome: SearchBarChrome;
+  onBarChromeChange: (v: SearchBarChrome) => void;
   filtersStyle: SearchFiltersStyle;
   onFiltersStyleChange: (v: SearchFiltersStyle) => void;
   drawerHeight: SearchDrawerHeight;
@@ -89,8 +98,12 @@ export default function SearchDebugPanel({
   onResultsViewChange,
   resultsRows,
   onResultsRowsChange,
+  resultsMeta,
+  onResultsMetaChange,
   filesViewerStyle,
   onFilesViewerStyleChange,
+  barChrome,
+  onBarChromeChange,
   filtersStyle,
   onFiltersStyleChange,
   drawerHeight,
@@ -140,6 +153,48 @@ export default function SearchDebugPanel({
           </header>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
+            <section className="flex items-center justify-between gap-3">
+              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                Bar
+              </h3>
+              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+                {(
+                  [
+                    {
+                      id: "ghost" as const,
+                      label: "Ghost",
+                      hint: "Chrome · Ghost capsule + split drawer (default)",
+                    },
+                    {
+                      id: "classic" as const,
+                      label: "Classic",
+                      hint: "Previous island + Search button + IMDb in drawer",
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const on = barChrome === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      title={opt.hint}
+                      onClick={() => onBarChromeChange(opt.id)}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                        on
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {barChrome === "classic" ? (
+              <>
             <section className="flex items-center justify-between gap-3">
               <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
                 Filters
@@ -221,6 +276,8 @@ export default function SearchDebugPanel({
                 </div>
               </section>
             ) : null}
+              </>
+            ) : null}
 
             <section className="flex items-center justify-between gap-3">
               <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -289,6 +346,48 @@ export default function SearchDebugPanel({
                         type="button"
                         title={opt.hint}
                         onClick={() => onResultsRowsChange(opt.id)}
+                        className={cn(
+                          "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                          on
+                            ? "bg-foreground text-background shadow-sm"
+                            : "text-muted-foreground hover:text-foreground",
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
+
+            {resultsView === "dense" ? (
+              <section className="flex items-center justify-between gap-3">
+                <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Meta
+                </h3>
+                <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+                  {(
+                    [
+                      {
+                        id: "dot-rail" as const,
+                        label: "Dot rail",
+                        hint: "· separators; seeders + leechers merged (default)",
+                      },
+                      {
+                        id: "plain" as const,
+                        label: "Plain",
+                        hint: "Previous tight icon row with separate peers",
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const on = resultsMeta === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        title={opt.hint}
+                        onClick={() => onResultsMetaChange(opt.id)}
                         className={cn(
                           "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
                           on

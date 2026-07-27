@@ -1,13 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher, useSearchParams } from "react-router";
 import SearchBar, {
+  type SearchBarChrome,
   type SearchDrawerHeight,
   type SearchFiltersStyle,
 } from "../components/SearchBar";
 import SearchResults, {
+  type SearchResultsMeta,
   type SearchResultsRows,
   type SearchResultsView,
 } from "../components/SearchResultsTable";
+import SearchSortStrip, {
+  sortSearchItems,
+  type SearchSortDir,
+  type SearchSortKey,
+} from "../components/SearchSortStrip";
 import type { TorrentFilesViewerStyle } from "../components/TorrentFilesHoverCard";
 import ImdbTitleCard, {
   type EpisodeSelection,
@@ -135,12 +142,17 @@ export default function SearchPage() {
   const [resultsView, setResultsView] = useState<SearchResultsView>("dense");
   const [resultsRows, setResultsRows] =
     useState<SearchResultsRows>("separated");
+  const [resultsMeta, setResultsMeta] =
+    useState<SearchResultsMeta>("dot-rail");
   const [filesViewerStyle, setFilesViewerStyle] =
     useState<TorrentFilesViewerStyle>("dense-glass");
+  const [barChrome, setBarChrome] = useState<SearchBarChrome>("ghost");
   const [filtersStyle, setFiltersStyle] =
     useState<SearchFiltersStyle>("drawer");
   const [drawerHeight, setDrawerHeight] =
     useState<SearchDrawerHeight>("tight");
+  const [sortKey, setSortKey] = useState<SearchSortKey>("seeders");
+  const [sortDir, setSortDir] = useState<SearchSortDir>("desc");
 
   const searchFetcher = useFetcher<SearchResponse>();
   const libraryFetcher = useFetcher<TorrentInfo[]>();
@@ -232,6 +244,18 @@ export default function SearchPage() {
     setClearSignal((n) => n + 1);
   };
 
+  const handleClearSearch = () => {
+    setImdbSelection(null);
+    setEpisodeSelection({ mode: "none" });
+    setQuery("");
+    setItems([]);
+    setSearchDebug(null);
+    setLastSearchApiUrl(null);
+    setIsLoading(false);
+    setPage(1);
+    setClearSignal((n) => n + 1);
+  };
+
   useEffect(() => {
     if (!qbOnline) return;
     libraryFetcher.load("/api/torrents");
@@ -245,7 +269,13 @@ export default function SearchPage() {
   }, [libraryFetcher.data, qbOnline]);
 
   useEffect(() => {
-    if (!query) return;
+    if (!query) {
+      setItems([]);
+      setSearchDebug(null);
+      setLastSearchApiUrl(null);
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
     const params = new URLSearchParams({ query });
     filters.forEach((f) => params.append("filters", f));
@@ -319,9 +349,12 @@ export default function SearchPage() {
     (query === imdbSelection!.id ||
       query.startsWith(imdbSelection!.title));
 
-  const filteredItems = imdbFilterActive
-    ? items.filter((item) => item.imdb === imdbId)
-    : items;
+  const filteredItems = useMemo(() => {
+    const base = imdbFilterActive
+      ? items.filter((item) => item.imdb === imdbId)
+      : items;
+    return sortSearchItems(base, sortKey, sortDir);
+  }, [items, imdbFilterActive, imdbId, sortKey, sortDir]);
   const filteredTotal = filteredItems.length;
   const filteredEnd = Math.min(start + PPER, filteredTotal);
   const filteredTotalPages = Math.max(1, Math.ceil(filteredTotal / PPER));
@@ -351,12 +384,14 @@ export default function SearchPage() {
         isLoading={isLoading}
         onSearch={handleSearch}
         onImdbSelect={handleImdbSelect}
+        onClear={handleClearSearch}
         clearSignal={clearSignal}
         initialQuery={imdbSelection?.title || query}
         initialImdb={imdbSelection}
         initialFilters={query ? filters : undefined}
         imdbMode={imdbMode}
         onImdbModeChange={setImdbMode}
+        chrome={import.meta.env.DEV ? barChrome : "ghost"}
         filtersStyle={import.meta.env.DEV ? filtersStyle : "drawer"}
         drawerHeight={import.meta.env.DEV ? drawerHeight : "tight"}
       />
@@ -395,6 +430,17 @@ export default function SearchPage() {
                     </span>
                   ) : null}
                 </span>
+                {!isLoading && filteredTotal > 0 ? (
+                  <SearchSortStrip
+                    sortKey={sortKey}
+                    sortDir={sortDir}
+                    onChange={(key, dir) => {
+                      setSortKey(key);
+                      setSortDir(dir);
+                      setPage(1);
+                    }}
+                  />
+                ) : null}
               </div>
 
               <SearchResults
@@ -405,6 +451,7 @@ export default function SearchPage() {
                 qbOnline={qbOnline}
                 view={import.meta.env.DEV ? resultsView : "dense"}
                 rows={import.meta.env.DEV ? resultsRows : "separated"}
+                meta={import.meta.env.DEV ? resultsMeta : "dot-rail"}
                 filesViewerStyle={
                   import.meta.env.DEV ? filesViewerStyle : "dense-glass"
                 }
@@ -470,8 +517,12 @@ export default function SearchPage() {
           onResultsViewChange={setResultsView}
           resultsRows={resultsRows}
           onResultsRowsChange={setResultsRows}
+          resultsMeta={resultsMeta}
+          onResultsMetaChange={setResultsMeta}
           filesViewerStyle={filesViewerStyle}
           onFilesViewerStyleChange={setFilesViewerStyle}
+          barChrome={barChrome}
+          onBarChromeChange={setBarChrome}
           filtersStyle={filtersStyle}
           onFiltersStyleChange={setFiltersStyle}
           drawerHeight={drawerHeight}
