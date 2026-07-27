@@ -1,11 +1,24 @@
 import { type RouteConfig, index, route } from "@react-router/dev/routes";
 
+/** DEV-only routes — omitted entirely from production builds. */
+const devRoutes = import.meta.env.DEV
+  ? [
+      route("/debug/liquid-glass", "./routes/debug.liquid-glass.tsx"),
+      route(
+        "/debug/liquid-glass-controls",
+        "./routes/debug.liquid-glass-controls.tsx",
+      ),
+      route("/api/liquid_glass_config", "./routes/api.liquid_glass_config.ts"),
+    ]
+  : [];
+
 export default [
   index("./routes/_index.tsx"),
   route("/search", "./routes/search.tsx"),
   route("/library", "./routes/library.tsx"),
   route("/settings", "./routes/settings.tsx"),
   route("/torrents", "./routes/torrents.tsx"), // redirects to /library
+  ...devRoutes,
   // Chrome DevTools Automatic Workspace Folders probe (avoids noisy 404 logs)
   route(
     "/.well-known/appspecific/com.chrome.devtools.json",

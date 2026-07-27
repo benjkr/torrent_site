@@ -145,7 +145,7 @@ export default function LibraryDebugPanel({
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
             <p className="text-[0.625rem] text-muted-foreground">
-              Dev-only. Production: Compact chrome, Original cards, Cover fill,
+              Dev-only. Production: Liquid chrome, Original cards, Cover fill,
               Frosted actions, Seed logo, Red seed-off, Pieces field, Float popup.
             </p>
 
@@ -155,9 +155,14 @@ export default function LibraryDebugPanel({
               onChange={onChromeViewChange}
               options={[
                 {
+                  id: "liquid",
+                  label: "Liquid",
+                  hint: "SVG refraction on the sticky search + filter bar (default).",
+                },
+                {
                   id: "compact",
-                  label: "Compact",
-                  hint: "Search-first glass bar with small filter pills.",
+                  label: "Frosted",
+                  hint: "Previous frosted glass search-first bar.",
                 },
                 {
                   id: "legacy",

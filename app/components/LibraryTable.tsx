@@ -95,7 +95,7 @@ export default function LibraryTable({
     () => new Set(),
   );
   const [cardView, setCardView] = useState<LibraryCardView>("legacy");
-  const [chromeView, setChromeView] = useState<LibraryChromeView>("compact");
+  const [chromeView, setChromeView] = useState<LibraryChromeView>("liquid");
   const [progressColorMode, setProgressColorMode] =
     useState<LibraryProgressColorMode>("cover");
   const [progressChrome, setProgressChrome] =
@@ -188,7 +188,7 @@ export default function LibraryTable({
   return (
     <div className="mt-1 space-y-4">
       <LibraryChrome
-        view={isDev ? chromeView : "compact"}
+        view={isDev ? chromeView : "liquid"}
         filter={filter}
         onFilterChange={setFilter}
         query={query}

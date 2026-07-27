@@ -6,14 +6,17 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import "./index.css";
 import { DebugPagesNav } from "@/components/DebugPagesNav";
 import { DevBookmark } from "@/components/DevBookmark";
+import { LiquidGlassDebugPanel } from "@/components/LiquidGlassDebugPanel";
 import { QbOfflineBanner } from "@/components/QbOfflineBanner";
 import { StatusCorner } from "@/components/StatusCorner";
 import { TopNav } from "@/components/TopNav";
+import { LiquidGlassConfigProvider } from "@/lib/liquid-glass/LiquidGlassConfigContext";
 import { MaindataProvider } from "./lib/maindata";
 import { QbDebugProvider } from "./lib/qb-debug";
 import { QbStatusProvider, useQbStatus } from "./lib/qb-status";
@@ -33,6 +36,13 @@ export const links: LinksFunction = () => [
 
 function AppShell() {
   const { online } = useQbStatus();
+  const { pathname } = useLocation();
+  const controlsOnly =
+    import.meta.env.DEV && pathname === "/debug/liquid-glass-controls";
+
+  if (controlsOnly) {
+    return <Outlet />;
+  }
 
   return (
     <>
@@ -44,6 +54,7 @@ function AppShell() {
       <StatusCorner />
       {import.meta.env.DEV ? <DevBookmark /> : null}
       {import.meta.env.DEV ? <DebugPagesNav /> : null}
+      {import.meta.env.DEV ? <LiquidGlassDebugPanel /> : null}
     </>
   );
 }
@@ -90,11 +101,13 @@ export function Layout({ children }: { children: ReactNode }) {
 
 export default function Root() {
   const app = (
-    <MaindataProvider>
-      <QbStatusProvider>
-        <AppShell />
-      </QbStatusProvider>
-    </MaindataProvider>
+    <LiquidGlassConfigProvider>
+      <MaindataProvider>
+        <QbStatusProvider>
+          <AppShell />
+        </QbStatusProvider>
+      </MaindataProvider>
+    </LiquidGlassConfigProvider>
   );
 
   return import.meta.env.DEV ? (

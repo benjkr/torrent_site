@@ -1,0 +1,11 @@
+{
+  "bezelWidth": 16,
+  "glassThickness": 70,
+  "refractiveIndex": 1.4,
+  "blur": 0.8,
+  "refractionLevel": 0.75,
+  "specularOpacity": 0.28,
+  "specularSaturation": 4,
+  "tintOpacity": 0.07,
+  "bezelType": "convex_squircle"
+}
