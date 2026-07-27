@@ -40,6 +40,8 @@ import type { ApiItem } from "../lib/types";
 export type SearchResultsView = "dense" | "legacy";
 /** Separated rows + container is production default; flush is prior dense stack. */
 export type SearchResultsRows = "separated" | "flush";
+/** Dot rail + merged peers is production default; plain is prior tight icon row. */
+export type SearchResultsMeta = "dot-rail" | "plain";
 
 interface Props {
   items: ApiItem[];
@@ -51,6 +53,8 @@ interface Props {
   view?: SearchResultsView;
   /** DEV-only; production always uses separated. */
   rows?: SearchResultsRows;
+  /** DEV-only; production always uses dot-rail. */
+  meta?: SearchResultsMeta;
   /** DEV-only; production always uses dense-glass. */
   filesViewerStyle?: TorrentFilesViewerStyle;
 }
@@ -220,6 +224,17 @@ function Stat({
   );
 }
 
+function DotSep() {
+  return (
+    <span
+      className="select-none text-[0.625rem] text-muted-foreground/45"
+      aria-hidden
+    >
+      ·
+    </span>
+  );
+}
+
 function DenseRow({
   item,
   inLibrary,
@@ -227,6 +242,7 @@ function DenseRow({
   onDownload,
   onHover,
   separated,
+  meta,
   filesViewerStyle,
 }: {
   item: ApiItem;
@@ -235,6 +251,7 @@ function DenseRow({
   onDownload: Props["onDownload"];
   onHover: () => void;
   separated: boolean;
+  meta: SearchResultsMeta;
   filesViewerStyle: TorrentFilesViewerStyle;
 }) {
   const seeders = +item.seeders;
@@ -250,6 +267,20 @@ function DenseRow({
     : inLibrary
       ? "In library"
       : "Add to library";
+
+  const imdbLink = item.imdb ? (
+    <a
+      href={`https://www.imdb.com/title/${item.imdb}`}
+      target="_blank"
+      rel="noreferrer"
+      title="IMDb"
+      aria-label="IMDb"
+      className="inline-flex items-center text-muted-foreground hover:text-foreground"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <ExternalLinkIcon className="size-3" />
+    </a>
+  ) : null;
 
   return (
     <div
@@ -290,40 +321,69 @@ function DenseRow({
           )}
         </button>
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
-        <Stat icon={HardDriveIcon} value={size} label="Size" />
-        <Stat
-          icon={SproutIcon}
-          value={seeders}
-          label="Seeders"
-          tone="text-emerald-600"
-        />
-        <Stat
-          icon={UserMinusIcon}
-          value={leechers}
-          label="Leechers"
-          tone="text-red-500"
-        />
-        <FilesMeta
-          itemId={item.id}
-          numFiles={numFiles}
-          filesViewerStyle={filesViewerStyle}
-        />
-        <Stat icon={ClockIcon} value={added} label="Added" />
-        {item.imdb ? (
-          <a
-            href={`https://www.imdb.com/title/${item.imdb}`}
-            target="_blank"
-            rel="noreferrer"
-            title="IMDb"
-            aria-label="IMDb"
-            className="inline-flex items-center text-muted-foreground hover:text-foreground"
-            onClick={(e) => e.stopPropagation()}
+      {meta === "dot-rail" ? (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <Stat icon={HardDriveIcon} value={size} label="Size" />
+          <DotSep />
+          <span
+            className="inline-flex items-center gap-1.5 tabular-nums"
+            title={`${seeders} seeders · ${leechers} leechers`}
           >
-            <ExternalLinkIcon className="size-3" />
-          </a>
-        ) : null}
-      </div>
+            <span className="inline-flex items-center gap-1 text-emerald-600">
+              <SproutIcon className="size-3 shrink-0 opacity-70" aria-hidden />
+              <span className="text-[0.6875rem] font-medium text-foreground/90">
+                {seeders}
+              </span>
+            </span>
+            <span className="inline-flex items-center gap-1 text-muted-foreground">
+              <UserMinusIcon
+                className="size-3 shrink-0 opacity-70"
+                aria-hidden
+              />
+              <span className="text-[0.6875rem] font-medium text-foreground/90">
+                {leechers}
+              </span>
+            </span>
+          </span>
+          <DotSep />
+          <FilesMeta
+            itemId={item.id}
+            numFiles={numFiles}
+            filesViewerStyle={filesViewerStyle}
+          />
+          <DotSep />
+          <Stat icon={ClockIcon} value={added} label="Added" />
+          {imdbLink ? (
+            <>
+              <DotSep />
+              {imdbLink}
+            </>
+          ) : null}
+        </div>
+      ) : (
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+          <Stat icon={HardDriveIcon} value={size} label="Size" />
+          <Stat
+            icon={SproutIcon}
+            value={seeders}
+            label="Seeders"
+            tone="text-emerald-600"
+          />
+          <Stat
+            icon={UserMinusIcon}
+            value={leechers}
+            label="Leechers"
+            tone="text-muted-foreground"
+          />
+          <FilesMeta
+            itemId={item.id}
+            numFiles={numFiles}
+            filesViewerStyle={filesViewerStyle}
+          />
+          <Stat icon={ClockIcon} value={added} label="Added" />
+          {imdbLink}
+        </div>
+      )}
     </div>
   );
 }
@@ -409,7 +469,7 @@ function LegacyCard({
             <span className="text-sm font-semibold">{seeders}</span>
           </span>
 
-          <span className="inline-flex items-center gap-1 bg-red-600 px-2 py-1 text-white">
+          <span className="inline-flex items-center gap-1 bg-muted px-2 py-1 text-muted-foreground">
             <UsersIcon className="size-3 shrink-0" />
             <span className="text-xs font-semibold">{leechers}</span>
           </span>
@@ -486,6 +546,7 @@ export default function SearchResults({
   qbOnline = true,
   view = "dense",
   rows = "separated",
+  meta = "dot-rail",
   filesViewerStyle = "dense-glass",
 }: Props) {
   const [, rerender] = useState(0);
@@ -495,6 +556,9 @@ export default function SearchResults({
   const effectiveRows: SearchResultsRows = import.meta.env.DEV
     ? rows
     : "separated";
+  const effectiveMeta: SearchResultsMeta = import.meta.env.DEV
+    ? meta
+    : "dot-rail";
   const effectiveFilesStyle: TorrentFilesViewerStyle = import.meta.env.DEV
     ? filesViewerStyle
     : "dense-glass";
@@ -569,6 +633,7 @@ export default function SearchResults({
           onDownload={onDownload}
           onHover={() => loadFiles(item.id)}
           separated={separated}
+          meta={effectiveMeta}
           filesViewerStyle={effectiveFilesStyle}
         />
       ))}
