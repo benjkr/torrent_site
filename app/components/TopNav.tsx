@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router";
-import { Badge } from "@/components/ui/badge";
+import { SearchIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import {
   clearLibraryNew,
@@ -55,13 +56,28 @@ const glassShell = cn(
   "backdrop-blur-2xl backdrop-saturate-150",
 );
 
-function navLinkClass(isActive: boolean, extra?: string) {
+const softActive = cn(
+  "bg-white/20 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] ring-1 ring-white/25",
+);
+const softIdle = "text-white/45 hover:bg-white/10 hover:text-white/85";
+
+function softLinkClass(isActive: boolean, extra?: string) {
   return cn(
-    "inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition-colors",
-    isActive
-      ? "bg-white/90 text-black shadow-sm"
-      : "text-white/70 hover:bg-white/10 hover:text-white",
+    "relative inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-sm font-medium transition-all",
+    isActive ? softActive : softIdle,
     extra,
+  );
+}
+
+function LibraryDot() {
+  return (
+    <span
+      className="relative flex size-1.5"
+      aria-label="New download added"
+    >
+      <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+      <span className="relative inline-flex size-1.5 rounded-full bg-emerald-400" />
+    </span>
   );
 }
 
@@ -81,7 +97,7 @@ function LibraryNavLink({ disabled }: { disabled?: boolean }) {
         clear();
       }}
       className={({ isActive }) =>
-        navLinkClass(
+        softLinkClass(
           isActive,
           cn(
             pulse && !disabled && "animate-pulse",
@@ -91,19 +107,7 @@ function LibraryNavLink({ disabled }: { disabled?: boolean }) {
       }
     >
       Library
-      {!disabled && hasNew ? (
-        <Badge
-          variant="secondary"
-          className="h-5 gap-1 border-0 bg-emerald-500/15 px-1.5 text-[0.625rem] font-semibold text-emerald-300"
-          aria-label="New download added"
-        >
-          <span className="relative flex size-1.5">
-            <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex size-1.5 rounded-full bg-emerald-500" />
-          </span>
-          New
-        </Badge>
-      ) : null}
+      {!disabled && hasNew ? <LibraryDot /> : null}
     </NavLink>
   );
 }
@@ -121,27 +125,44 @@ export function TopNav({ disabled }: { disabled: boolean }) {
         >
           <NavLink
             to="/search"
-            className={({ isActive }) => navLinkClass(isActive)}
-          >
-            Search
-          </NavLink>
-          <LibraryNavLink disabled={disabled} />
-          <NavLink
-            to="/settings"
-            aria-disabled={disabled || undefined}
-            tabIndex={disabled ? -1 : undefined}
-            onClick={(e) => {
-              if (disabled) e.preventDefault();
-            }}
+            title="Search"
+            aria-label="Search"
             className={({ isActive }) =>
-              navLinkClass(
-                isActive,
-                disabled ? "pointer-events-none opacity-40" : undefined,
+              cn(
+                "inline-flex size-9 items-center justify-center rounded-full transition-all",
+                isActive ? softActive : softIdle,
               )
             }
           >
-            Settings
+            {({ isActive }) => (
+              <SearchIcon
+                className="size-4"
+                strokeWidth={isActive ? 2.25 : 1.75}
+              />
+            )}
           </NavLink>
+
+          <span aria-hidden className="mx-0.5 h-4 w-px bg-white/15" />
+
+          <div className="flex items-center gap-0.5">
+            <LibraryNavLink disabled={disabled} />
+            <NavLink
+              to="/settings"
+              aria-disabled={disabled || undefined}
+              tabIndex={disabled ? -1 : undefined}
+              onClick={(e) => {
+                if (disabled) e.preventDefault();
+              }}
+              className={({ isActive }) =>
+                softLinkClass(
+                  isActive,
+                  disabled ? "pointer-events-none opacity-40" : undefined,
+                )
+              }
+            >
+              Settings
+            </NavLink>
+          </div>
         </nav>
         <div aria-hidden />
       </div>

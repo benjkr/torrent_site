@@ -278,11 +278,11 @@
     @apply border-border outline-ring/50;
   }
   /*
-   * 150% visual density without CSS zoom (zoom breaks floating UI / tooltips).
-   * Root rem = 24px so Tailwind rem utilities match former 150% Chrome zoom.
+   * 135% visual density without CSS zoom (zoom breaks floating UI / tooltips).
+   * Root rem ≈ 21.6px (90% of the prior 150% / 24px density).
    */
   html {
-    font-size: 150%;
+    font-size: 135%;
     /*
      * Reserve equal scrollbar space on both edges so centered shells
      * (mx-auto max-w-7xl) neither jump when overflow starts nor sit
