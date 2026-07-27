@@ -8,12 +8,16 @@ import type { ImdbSuggestion } from "@/lib/types";
 const RESOLUTIONS = ["720p", "1080p", "2160p"] as const;
 const SOURCES = ["BluRay", "WEBRip"] as const;
 
+/** Ghost (Chrome · Ghost + Split drawer) is production default; classic is prior island. */
+export type SearchBarChrome = "ghost" | "classic";
 export type SearchFiltersStyle = "drawer" | "legacy";
 export type SearchDrawerHeight = "tight" | "tall";
 
 interface SearchBarProps {
   onSearch: (query: string, filters: string[]) => void;
   onImdbSelect?: (selection: ImdbSuggestion | null) => void;
+  /** Clear search text + related parent state (X button). */
+  onClear?: () => void;
   /** Increment to clear the current IMDB selection from outside */
   clearSignal?: number;
   isLoading?: boolean;
@@ -23,9 +27,11 @@ interface SearchBarProps {
   initialFilters?: string[];
   imdbMode?: boolean;
   onImdbModeChange?: (enabled: boolean) => void;
-  /** DEV-only: `legacy` = previous floating docks. Production always uses `drawer`. */
+  /** DEV-only; production always uses ghost. */
+  chrome?: SearchBarChrome;
+  /** DEV-only (classic): `legacy` = floating docks. Production classic uses `drawer`. */
   filtersStyle?: SearchFiltersStyle;
-  /** DEV-only: `tall` = previous roomier drawer. Production always uses `tight`. */
+  /** DEV-only (classic): `tall` = roomier drawer. Production classic uses `tight`. */
   drawerHeight?: SearchDrawerHeight;
 }
 
@@ -57,9 +63,41 @@ function filtersKey(filters: string[] | undefined): string {
   return filters === undefined ? "__default__" : filters.slice().sort().join("\0");
 }
 
+function ImdbLogoToggle({
+  on,
+  onClick,
+}: {
+  on: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      title={on ? "IMDb on" : "IMDb off"}
+      onClick={onClick}
+      className={cn(
+        "mr-1.5 inline-flex h-8 shrink-0 cursor-pointer items-center justify-center rounded-md px-1.5",
+        "transition-opacity hover:opacity-90",
+      )}
+    >
+      <img
+        src="/imdb-logo.svg"
+        alt="IMDb"
+        className={cn(
+          "h-5 w-auto cursor-pointer select-none transition-[filter,opacity]",
+          on ? "opacity-100" : "opacity-70 grayscale contrast-125",
+        )}
+        draggable={false}
+      />
+    </button>
+  );
+}
+
 export default function SearchBar({
   onSearch,
   onImdbSelect,
+  onClear,
   clearSignal = 0,
   isLoading = false,
   initialQuery = "",
@@ -67,6 +105,7 @@ export default function SearchBar({
   initialFilters,
   imdbMode: imdbModeProp,
   onImdbModeChange,
+  chrome = "ghost",
   filtersStyle = "drawer",
   drawerHeight = "tight",
 }: SearchBarProps) {
@@ -91,11 +130,15 @@ export default function SearchBar({
   const justSelected = useRef(false);
   const userEdited = useRef(!initialQuery && !initialImdb);
 
-  const useLegacy = import.meta.env.DEV && filtersStyle === "legacy";
+  const useClassic = import.meta.env.DEV && chrome === "classic";
+  const useLegacy =
+    useClassic && import.meta.env.DEV && filtersStyle === "legacy";
   const useTallDrawer =
-    import.meta.env.DEV && drawerHeight === "tall" && !useLegacy;
-  /** Design 1: fixed h-7 chips, lighter tuck (production default). */
-  const useLockedChips = !useLegacy && !useTallDrawer;
+    useClassic &&
+    import.meta.env.DEV &&
+    drawerHeight === "tall" &&
+    !useLegacy;
+  const useLockedChips = useClassic && !useLegacy && !useTallDrawer;
 
   // Rehydrate from URL / parent when applied search state changes (not draft toggles).
   useEffect(() => {
@@ -195,7 +238,9 @@ export default function SearchBar({
     setSuggestions([]);
     setOpen(false);
     setSelectedImdb(null);
-    onImdbSelect?.(null);
+    userEdited.current = false;
+    if (onClear) onClear();
+    else onImdbSelect?.(null);
   };
 
   useEffect(() => {
@@ -212,7 +257,10 @@ export default function SearchBar({
     ? "inline-flex h-7 shrink-0 cursor-pointer items-center justify-center rounded-full px-2.5 leading-none transition-colors"
     : "cursor-pointer rounded-full px-3 py-1.5 transition-all";
 
-  const imdbToggle = (
+  const ghostChip =
+    "inline-flex h-6 shrink-0 cursor-pointer items-center justify-center rounded-full px-2 text-[0.625rem] font-medium transition-colors";
+
+  const classicImdbToggle = (
     <button
       type="button"
       onClick={() => setImdbMode((v) => !v)}
@@ -233,55 +281,192 @@ export default function SearchBar({
     </button>
   );
 
-  const resolutionToggles = RESOLUTIONS.map((f) => {
-    const on = active.has(f);
-    return (
-      <button
-        key={f}
-        type="button"
-        onClick={() => toggle(f)}
-        className={cn(
-          chipClass,
-          "text-xs font-medium",
-          on
-            ? useLockedChips
-              ? "bg-white text-black"
-              : "bg-white text-black shadow-sm"
-            : useLegacy
-              ? "text-white/45 hover:bg-white/10 hover:text-white"
-              : "text-white/45 hover:bg-white/8 hover:text-white/75",
-        )}
-      >
-        {f}
-      </button>
-    );
-  });
+  const resolutionToggles = (ghost: boolean) =>
+    RESOLUTIONS.map((f) => {
+      const on = active.has(f);
+      return (
+        <button
+          key={f}
+          type="button"
+          onClick={() => toggle(f)}
+          className={cn(
+            ghost ? ghostChip : chipClass,
+            !ghost && "text-xs font-medium",
+            on
+              ? ghost || useLockedChips
+                ? "bg-white text-black"
+                : "bg-white text-black shadow-sm"
+              : useLegacy
+                ? "text-white/45 hover:bg-white/10 hover:text-white"
+                : "text-white/45 hover:bg-white/8 hover:text-white/75",
+          )}
+        >
+          {f}
+        </button>
+      );
+    });
 
-  const sourceToggles = SOURCES.map((f) => {
-    const on = active.has(f);
+  const sourceToggles = (ghost: boolean) =>
+    SOURCES.map((f) => {
+      const on = active.has(f);
+      return (
+        <button
+          key={f}
+          type="button"
+          onClick={() => toggle(f)}
+          className={cn(
+            ghost ? ghostChip : chipClass,
+            !ghost && "text-xs font-medium",
+            on
+              ? useLegacy
+                ? "bg-imdb/30 text-imdb-foreground ring-1 ring-imdb/40"
+                : ghost || useLockedChips
+                  ? "bg-imdb/25 text-imdb"
+                  : "bg-imdb/20 text-imdb ring-1 ring-imdb/45"
+              : useLegacy
+                ? "text-white/45 hover:bg-white/10 hover:text-white"
+                : "text-white/45 hover:bg-white/8 hover:text-white/75",
+          )}
+        >
+          {f}
+        </button>
+      );
+    });
+
+  const suggestionsPanel = imdbMode && open && (
+    <div
+      className={cn(
+        "absolute left-2 right-2 z-50 mt-2 overflow-hidden rounded-2xl border border-white/20",
+        "bg-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl",
+      )}
+    >
+      {suggestions.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          onClick={() => select(s)}
+          className="flex w-full cursor-pointer items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/10"
+        >
+          {s.image ? (
+            <img
+              src={s.image}
+              alt=""
+              className="h-11 w-8 shrink-0 rounded object-cover bg-muted"
+            />
+          ) : (
+            <div className="flex h-11 w-8 shrink-0 items-center justify-center rounded bg-muted">
+              <SearchIcon className="size-3 text-muted-foreground" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="truncate text-sm leading-tight">{s.title}</div>
+            <div className="text-xs text-muted-foreground">
+              {s.type === "series"
+                ? "Series"
+                : s.type === "movie"
+                  ? "Movie"
+                  : ""}
+              {s.year ? `${s.type !== "unknown" ? " · " : ""}${s.year}` : ""}
+              {s.stars
+                ? ` · ${s.stars.split(",").slice(0, 2).join(", ")}`
+                : ""}
+            </div>
+          </div>
+        </button>
+      ))}
+    </div>
+  );
+
+  if (!useClassic) {
     return (
-      <button
-        key={f}
-        type="button"
-        onClick={() => toggle(f)}
-        className={cn(
-          chipClass,
-          "text-xs font-medium",
-          on
-            ? useLegacy
-              ? "bg-imdb/30 text-imdb-foreground ring-1 ring-imdb/40"
-              : useLockedChips
-                ? "bg-imdb/25 text-imdb"
-                : "bg-imdb/20 text-imdb ring-1 ring-imdb/45"
-            : useLegacy
-              ? "text-white/45 hover:bg-white/10 hover:text-white"
-              : "text-white/45 hover:bg-white/8 hover:text-white/75",
-        )}
+      <form
+        ref={formRef}
+        onSubmit={submit}
+        className="relative mx-auto my-4 w-full px-2"
+        style={{ maxWidth: 784 }}
       >
-        {f}
-      </button>
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -inset-8 rounded-full opacity-50 blur-3xl transition-colors duration-500",
+            imdbMode ? "bg-imdb/15" : "bg-white/8",
+          )}
+        />
+
+        <div className="relative z-10">
+          <div className={cn(islandShell, "rounded-full")}>
+            <div className="flex items-center gap-1 px-2 py-1.5">
+              <button
+                type="submit"
+                title="Search"
+                disabled={isLoading}
+                className="ml-1 inline-flex size-9 shrink-0 cursor-pointer items-center justify-center text-white/55 transition-colors hover:text-white disabled:opacity-60"
+              >
+                <SearchIcon className="size-4" strokeWidth={1.75} />
+              </button>
+              <input
+                type="text"
+                placeholder={
+                  imdbMode
+                    ? "Search movies and series…"
+                    : "Search torrents…"
+                }
+                value={text}
+                onChange={(e) => {
+                  userEdited.current = true;
+                  setText(e.currentTarget.value);
+                }}
+                onFocus={() => {
+                  if (imdbMode && suggestions.length > 0) setOpen(true);
+                }}
+                className="h-10 min-w-0 flex-1 bg-transparent px-2 text-sm outline-none placeholder:text-white/35"
+              />
+              {text && !isLoading ? (
+                <button
+                  type="button"
+                  onClick={clear}
+                  title="Clear"
+                  className="cursor-pointer rounded-full p-1.5 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <XIcon className="size-4" />
+                </button>
+              ) : null}
+              <ImdbLogoToggle
+                on={imdbMode}
+                onClick={() => setImdbMode((v) => !v)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {suggestionsPanel}
+
+        <div className="mx-auto" style={{ maxWidth: 688 }}>
+          <div
+            className={cn(
+              "relative overflow-hidden border border-t-0 border-white/10 bg-[#0a0a0a]",
+              "shadow-[0_20px_50px_rgba(0,0,0,0.55)]",
+              "-mt-1.5 rounded-b-[1.25rem] px-3 py-2.5",
+            )}
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
+            />
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              {resolutionToggles(true)}
+              <FilterDivider locked />
+              {sourceToggles(true)}
+            </div>
+          </div>
+        </div>
+
+        <p className="mt-2.5 text-center text-xs text-white/40">
+          Press Enter to search. You can paste an info hash to jump directly.
+        </p>
+      </form>
     );
-  });
+  }
 
   return (
     <form
@@ -325,7 +510,7 @@ export default function SearchBar({
                 type="button"
                 onClick={clear}
                 title="Clear"
-                className="rounded-full p-2 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
+                className="cursor-pointer rounded-full p-2 text-white/40 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <XIcon className="size-4" />
               </button>
@@ -334,7 +519,7 @@ export default function SearchBar({
               type="submit"
               disabled={isLoading}
               className={cn(
-                "ml-1 mr-1 rounded-full px-4 py-2 text-sm font-medium transition-all disabled:opacity-60",
+                "ml-1 mr-1 cursor-pointer rounded-full px-4 py-2 text-sm font-medium transition-all disabled:opacity-60",
                 imdbMode
                   ? "bg-imdb text-imdb-on hover:bg-imdb-hover"
                   : "bg-white text-black hover:bg-white/90",
@@ -346,57 +531,15 @@ export default function SearchBar({
         </div>
       </div>
 
-      {imdbMode && open && (
-        <div
-          className={cn(
-            "absolute left-2 right-2 z-50 mt-2 overflow-hidden rounded-2xl border border-white/20",
-            "bg-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl",
-          )}
-        >
-          {suggestions.map((s) => (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => select(s)}
-              className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-white/10"
-            >
-              {s.image ? (
-                <img
-                  src={s.image}
-                  alt=""
-                  className="h-11 w-8 shrink-0 rounded object-cover bg-muted"
-                />
-              ) : (
-                <div className="flex h-11 w-8 shrink-0 items-center justify-center rounded bg-muted">
-                  <SearchIcon className="size-3 text-muted-foreground" />
-                </div>
-              )}
-              <div className="min-w-0">
-                <div className="truncate text-sm leading-tight">{s.title}</div>
-                <div className="text-xs text-muted-foreground">
-                  {s.type === "series"
-                    ? "Series"
-                    : s.type === "movie"
-                      ? "Movie"
-                      : ""}
-                  {s.year ? `${s.type !== "unknown" ? " · " : ""}${s.year}` : ""}
-                  {s.stars
-                    ? ` · ${s.stars.split(",").slice(0, 2).join(", ")}`
-                    : ""}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {suggestionsPanel}
 
       {useLegacy ? (
         <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <div className={dockShell}>{imdbToggle}</div>
+          <div className={dockShell}>{classicImdbToggle}</div>
           <div className={dockShell}>
-            {resolutionToggles}
+            {resolutionToggles(false)}
             <span className="mx-0.5 h-4 w-px bg-white/15" />
-            {sourceToggles}
+            {sourceToggles(false)}
           </div>
         </div>
       ) : (
@@ -415,11 +558,11 @@ export default function SearchBar({
               className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent via-white/15 to-transparent"
             />
             <div className="flex flex-wrap items-center justify-center gap-1">
-              {imdbToggle}
+              {classicImdbToggle}
               <FilterDivider locked={useLockedChips} />
-              {resolutionToggles}
+              {resolutionToggles(false)}
               <FilterDivider locked={useLockedChips} />
-              {sourceToggles}
+              {sourceToggles(false)}
             </div>
           </div>
         </div>
