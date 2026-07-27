@@ -23,3 +23,29 @@ Default design options toward Apple-style glass:
 - Pill / continuous-corner shapes; restrained shadow
 
 **Not mandatory.** If another treatment fits better, use that and say why briefly.
+
+# Popups / hover cards / overlays
+
+Every popup, hover card, menu, and floating overlay should use this **dense glass** surface — same look as glass cards. Match aesthetic only (background, border, blur, type, colors); do **not** copy a card’s content layout.
+
+## Shell
+
+- Shape: `rounded-2xl` (continuous corner); nested rows/items `rounded-lg`
+- Border: `border border-white/20`
+- Fill: `bg-zinc-900/80` (or card-style gradient `bg-linear-to-b from-white/14 to-white/6` when floating over busy chrome)
+- Blur: `backdrop-blur-2xl backdrop-saturate-150`
+- Shadow: `shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.28)]` (drop + top specular)
+- Base text: `text-white`; strip default opaque / shadcn popover chrome (`ring-0` if needed)
+
+## Type & color
+
+- Labels / section headers: `text-[0.5625rem] font-medium uppercase tracking-wide text-white/50`
+- Primary content: `text-[0.625rem]`–`text-xs` · `text-white/90`
+- Secondary meta (sizes, counts): `text-[0.5625rem] tabular-nums text-white/40`
+- Muted empty/loading: `text-white/50`
+
+## Interaction
+
+- Row hover: `hover:bg-white/10`
+- Positive actions: emerald accents (e.g. `text-emerald-400 hover:bg-white/10`)
+- Compact padding (`p-1.5` shell, tight row gaps) — dense, not airy panels
