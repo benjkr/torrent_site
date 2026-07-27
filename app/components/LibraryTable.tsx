@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { imdbIdFromTags, normalizeImdbId } from "@/lib/imdb";
-import type { TorrentInfo, FileInfo, ImdbMeta } from "../lib/types";
+import { useImdbMetaMap } from "@/lib/imdb-meta";
+import type { TorrentInfo, FileInfo } from "../lib/types";
 import {
   LibraryChrome,
   type LibraryChromeView,
@@ -11,6 +12,8 @@ import { LibraryTorrentCard } from "./LibraryTorrentCard";
 import LibraryDebugPanel, {
   type LibraryCardView,
   type LibraryCompleteAction,
+  type LibraryPiecesPopupStyle,
+  type LibraryPiecesVariant,
   type LibraryProgressChrome,
   type LibraryProgressColorMode,
   type LibrarySeedOffStyle,
@@ -28,82 +31,6 @@ interface LibraryTableProps {
   onRecheck: (hash: string) => void;
   onReannounce: (hash: string) => void;
   onDelete: (hash: string, withFiles: boolean) => void;
-}
-
-const metaCache = new Map<string, ImdbMeta | null>();
-const metaInflight = new Map<string, Promise<ImdbMeta | null>>();
-
-async function fetchImdbMeta(id: string): Promise<ImdbMeta | null> {
-  if (metaCache.has(id)) return metaCache.get(id) ?? null;
-  const existing = metaInflight.get(id);
-  if (existing) return existing;
-
-  const promise = fetch(`/api/imdb_meta?id=${encodeURIComponent(id)}`)
-    .then(async (res) => {
-      if (!res.ok) return null;
-      const json = await res.json();
-      if (!json || json.error) return null;
-      return json as ImdbMeta;
-    })
-    .catch(() => null)
-    .then((meta) => {
-      metaCache.set(id, meta);
-      metaInflight.delete(id);
-      return meta;
-    });
-
-  metaInflight.set(id, promise);
-  return promise;
-}
-
-function useImdbMetaMap(ids: string[]) {
-  const [map, setMap] = useState<Record<string, ImdbMeta | null>>(() => {
-    const initial: Record<string, ImdbMeta | null> = {};
-    for (const id of ids) {
-      if (metaCache.has(id)) initial[id] = metaCache.get(id) ?? null;
-    }
-    return initial;
-  });
-  const idsKey = ids.slice().sort().join(",");
-
-  useEffect(() => {
-    let cancelled = false;
-    const missing = ids.filter((id) => !metaCache.has(id));
-
-    setMap((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const id of ids) {
-        if (metaCache.has(id) && next[id] !== metaCache.get(id)) {
-          next[id] = metaCache.get(id) ?? null;
-          changed = true;
-        }
-      }
-      return changed ? next : prev;
-    });
-
-    if (missing.length === 0) return;
-
-    Promise.all(
-      missing.map(async (id) => {
-        const meta = await fetchImdbMeta(id);
-        return [id, meta] as const;
-      }),
-    ).then((entries) => {
-      if (cancelled) return;
-      setMap((prev) => {
-        const next = { ...prev };
-        for (const [id, meta] of entries) next[id] = meta;
-        return next;
-      });
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [idsKey]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  return map;
 }
 
 function isPausedState(state: string) {
@@ -179,6 +106,10 @@ export default function LibraryTable({
     useState<LibrarySeedOffStyle>("red");
   const [filesViewerStyle, setFilesViewerStyle] =
     useState<TorrentFilesViewerStyle>("dense-glass");
+  const [piecesVariant, setPiecesVariant] =
+    useState<LibraryPiecesVariant>("field");
+  const [piecesPopupStyle, setPiecesPopupStyle] =
+    useState<LibraryPiecesPopupStyle>("float");
   const isDev = import.meta.env.DEV;
 
   // Prefill / update from ?q= when navigating from toast ("View in Library").
@@ -289,6 +220,8 @@ export default function LibraryTable({
                 completeAction={isDev ? completeAction : "logo"}
                 seedOffStyle={isDev ? seedOffStyle : "red"}
                 filesViewerStyle={isDev ? filesViewerStyle : "dense-glass"}
+                piecesVariant={isDev ? piecesVariant : "field"}
+                piecesPopupStyle={isDev ? piecesPopupStyle : "float"}
                 torrent={t}
                 meta={meta}
                 files={files}
@@ -324,6 +257,10 @@ export default function LibraryTable({
           onSeedOffStyleChange={setSeedOffStyle}
           filesViewerStyle={filesViewerStyle}
           onFilesViewerStyleChange={setFilesViewerStyle}
+          piecesVariant={piecesVariant}
+          onPiecesVariantChange={setPiecesVariant}
+          piecesPopupStyle={piecesPopupStyle}
+          onPiecesPopupStyleChange={setPiecesPopupStyle}
         />
       ) : null}
     </div>

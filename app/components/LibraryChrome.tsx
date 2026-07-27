@@ -1,5 +1,6 @@
 import { SearchIcon } from "lucide-react";
 
+import { FreeSpacePill, useQbFreeSpace } from "@/components/FreeSpacePill";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +35,12 @@ const glassShell = cn(
   "backdrop-blur-2xl backdrop-saturate-150",
 );
 
+function TitleRowAside() {
+  const free = useQbFreeSpace();
+  if (!free) return null;
+  return <FreeSpacePill data={free} className="self-start sm:self-auto" />;
+}
+
 /** Default: compact search-first glass bar with filter pills. */
 function LibraryChromeCompact({
   filter,
@@ -51,9 +58,7 @@ function LibraryChromeCompact({
             {counts.all} torrents
           </span>
         </h1>
-        <p className="hidden text-xs text-muted-foreground sm:block">
-          Active and finished downloads
-        </p>
+        <TitleRowAside />
       </div>
       {/* Sticky parent must include the torrent list (LibraryTable wrapper). */}
       <div className="sticky top-16 z-40 -mx-4 px-4 py-2">
@@ -125,6 +130,7 @@ function LibraryChromeLegacy({
             All downloads from qBittorrent — active and finished.
           </p>
         </div>
+        <TitleRowAside />
       </div>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

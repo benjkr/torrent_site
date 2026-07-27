@@ -1,7 +1,14 @@
 import { useEffect, useState } from "react";
 
+/** Bump when the extraction algorithm changes so stale averages aren't reused. */
+const CACHE_VERSION = "dom-v2";
+
 const cache = new Map<string, string | null>();
 const inflight = new Map<string, Promise<string | null>>();
+
+function cacheKey(url: string): string {
+  return `${CACHE_VERSION}:${url}`;
+}
 
 function rgbToHex(r: number, g: number, b: number): string {
   return `#${[r, g, b].map((n) => n.toString(16).padStart(2, "0")).join("")}`;
@@ -18,12 +25,14 @@ function isUsefulPixel(r: number, g: number, b: number): boolean {
 }
 
 /**
- * Sample a cover image for a single dominant RGB (averaged useful pixels).
+ * Sample a cover image for its true dominant color (most frequent quantized
+ * bucket among useful pixels — not a global average).
  * Returns null on CORS / load failure.
  */
 export function extractDominantColor(url: string): Promise<string | null> {
-  if (cache.has(url)) return Promise.resolve(cache.get(url) ?? null);
-  const existing = inflight.get(url);
+  const key = cacheKey(url);
+  if (cache.has(key)) return Promise.resolve(cache.get(key) ?? null);
+  const existing = inflight.get(key);
   if (existing) return existing;
 
   const promise = new Promise<string | null>((resolve) => {
@@ -31,8 +40,8 @@ export function extractDominantColor(url: string): Promise<string | null> {
     img.decoding = "async";
 
     const finish = (value: string | null) => {
-      cache.set(url, value);
-      inflight.delete(url);
+      cache.set(key, value);
+      inflight.delete(key);
       resolve(value);
     };
 
@@ -50,10 +59,12 @@ export function extractDominantColor(url: string): Promise<string | null> {
         ctx.drawImage(img, 0, 0, size, size);
         const { data } = ctx.getImageData(0, 0, size, size);
 
-        let rSum = 0;
-        let gSum = 0;
-        let bSum = 0;
-        let count = 0;
+        // 5-bit RGB buckets → count mode among useful pixels.
+        const SHIFT = 3;
+        const counts = new Map<
+          number,
+          { n: number; r: number; g: number; b: number }
+        >();
 
         for (let i = 0; i < data.length; i += 4) {
           const a = data[i + 3];
@@ -62,22 +73,41 @@ export function extractDominantColor(url: string): Promise<string | null> {
           const g = data[i + 1];
           const b = data[i + 2];
           if (!isUsefulPixel(r, g, b)) continue;
-          rSum += r;
-          gSum += g;
-          bSum += b;
-          count += 1;
+
+          const bucketKey =
+            ((r >> SHIFT) << 10) | ((g >> SHIFT) << 5) | (b >> SHIFT);
+          const bucket = counts.get(bucketKey);
+          if (bucket) {
+            bucket.n += 1;
+            bucket.r += r;
+            bucket.g += g;
+            bucket.b += b;
+          } else {
+            counts.set(bucketKey, { n: 1, r, g, b });
+          }
         }
 
-        if (count === 0) {
+        if (counts.size === 0) {
           finish(null);
           return;
         }
 
+        let best: { n: number; r: number; g: number; b: number } | null =
+          null;
+        for (const bucket of counts.values()) {
+          if (!best || bucket.n > best.n) best = bucket;
+        }
+        if (!best) {
+          finish(null);
+          return;
+        }
+
+        // Representative = mean of the winning (most frequent) bucket only.
         finish(
           rgbToHex(
-            Math.round(rSum / count),
-            Math.round(gSum / count),
-            Math.round(bSum / count),
+            Math.round(best.r / best.n),
+            Math.round(best.g / best.n),
+            Math.round(best.b / best.n),
           ),
         );
       } catch {
@@ -90,7 +120,7 @@ export function extractDominantColor(url: string): Promise<string | null> {
     img.src = `/api/image_proxy?url=${encodeURIComponent(url)}`;
   });
 
-  inflight.set(url, promise);
+  inflight.set(key, promise);
   return promise;
 }
 
@@ -101,7 +131,9 @@ export function softWashFill(dominant: string): string {
 
 export function useDominantColor(imageUrl: string | null | undefined): string | null {
   const [color, setColor] = useState<string | null>(() =>
-    imageUrl && cache.has(imageUrl) ? (cache.get(imageUrl) ?? null) : null,
+    imageUrl && cache.has(cacheKey(imageUrl))
+      ? (cache.get(cacheKey(imageUrl)) ?? null)
+      : null,
   );
 
   useEffect(() => {
@@ -109,8 +141,9 @@ export function useDominantColor(imageUrl: string | null | undefined): string | 
       setColor(null);
       return;
     }
-    if (cache.has(imageUrl)) {
-      setColor(cache.get(imageUrl) ?? null);
+    const key = cacheKey(imageUrl);
+    if (cache.has(key)) {
+      setColor(cache.get(key) ?? null);
       return;
     }
     let cancelled = false;
@@ -123,4 +156,60 @@ export function useDominantColor(imageUrl: string | null | undefined): string | 
   }, [imageUrl]);
 
   return color;
+}
+
+/** Batch dominant colors keyed by image URL (shared cache with useDominantColor). */
+export function useDominantColorMap(
+  urls: string[],
+): Record<string, string | null> {
+  const unique = Array.from(new Set(urls.filter(Boolean)));
+  const urlsKey = unique.slice().sort().join("\0");
+  const [map, setMap] = useState<Record<string, string | null>>(() => {
+    const initial: Record<string, string | null> = {};
+    for (const url of unique) {
+      const key = cacheKey(url);
+      if (cache.has(key)) initial[url] = cache.get(key) ?? null;
+    }
+    return initial;
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    const missing = unique.filter((url) => !cache.has(cacheKey(url)));
+
+    setMap((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      for (const url of unique) {
+        const key = cacheKey(url);
+        if (cache.has(key) && next[url] !== cache.get(key)) {
+          next[url] = cache.get(key) ?? null;
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+
+    if (missing.length === 0) return;
+
+    Promise.all(
+      missing.map(async (url) => {
+        const color = await extractDominantColor(url);
+        return [url, color] as const;
+      }),
+    ).then((entries) => {
+      if (cancelled) return;
+      setMap((prev) => {
+        const next = { ...prev };
+        for (const [url, color] of entries) next[url] = color;
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  return map;
 }

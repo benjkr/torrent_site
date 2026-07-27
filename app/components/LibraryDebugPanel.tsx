@@ -3,6 +3,10 @@ import { BugIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { TorrentFilesViewerStyle } from "@/components/TorrentFilesHoverCard";
+import type {
+  PiecePopupStyle,
+  PieceStatusVariant,
+} from "./PieceStatusBookmark";
 import type { LibraryChromeView } from "./LibraryChrome";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +15,8 @@ export type LibraryProgressColorMode = "cover" | "original";
 export type LibraryProgressChrome = "frosted" | "flat";
 export type LibraryCompleteAction = "logo" | "capsule";
 export type LibrarySeedOffStyle = "red" | "muted";
+export type LibraryPiecesVariant = PieceStatusVariant;
+export type LibraryPiecesPopupStyle = PiecePopupStyle;
 
 interface LibraryDebugPanelProps {
   chromeView: LibraryChromeView;
@@ -27,6 +33,10 @@ interface LibraryDebugPanelProps {
   onSeedOffStyleChange: (v: LibrarySeedOffStyle) => void;
   filesViewerStyle: TorrentFilesViewerStyle;
   onFilesViewerStyleChange: (v: TorrentFilesViewerStyle) => void;
+  piecesVariant: LibraryPiecesVariant;
+  onPiecesVariantChange: (v: LibraryPiecesVariant) => void;
+  piecesPopupStyle: LibraryPiecesPopupStyle;
+  onPiecesPopupStyleChange: (v: LibraryPiecesPopupStyle) => void;
 }
 
 function FlagGroup<T extends string>({
@@ -85,6 +95,10 @@ export default function LibraryDebugPanel({
   onSeedOffStyleChange,
   filesViewerStyle,
   onFilesViewerStyleChange,
+  piecesVariant,
+  onPiecesVariantChange,
+  piecesPopupStyle,
+  onPiecesPopupStyleChange,
 }: LibraryDebugPanelProps) {
   const [open, setOpen] = useState(false);
 
@@ -132,7 +146,7 @@ export default function LibraryDebugPanel({
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
             <p className="text-[0.625rem] text-muted-foreground">
               Dev-only. Production: Compact chrome, Original cards, Cover fill,
-              Frosted actions, Seed logo, Red seed-off.
+              Frosted actions, Seed logo, Red seed-off, Pieces field, Float popup.
             </p>
 
             <FlagGroup
@@ -239,6 +253,42 @@ export default function LibraryDebugPanel({
                   id: "legacy",
                   label: "Legacy",
                   hint: "Previous flat popover file list.",
+                },
+              ]}
+            />
+
+            <FlagGroup
+              label="Pieces"
+              value={piecesVariant}
+              onChange={onPiecesVariantChange}
+              options={[
+                {
+                  id: "field",
+                  label: "Field",
+                  hint: "Stats cell under Files (production default).",
+                },
+                {
+                  id: "bookmark",
+                  label: "Bookmark",
+                  hint: "Previous top-right ribbon bookmark.",
+                },
+              ]}
+            />
+
+            <FlagGroup
+              label="Pieces popup"
+              value={piecesPopupStyle}
+              onChange={onPiecesPopupStyleChange}
+              options={[
+                {
+                  id: "float",
+                  label: "Float",
+                  hint: "Dense-glass Ring·Line: floating mosaic, no ring/percent.",
+                },
+                {
+                  id: "legacy",
+                  label: "Legacy",
+                  hint: "Previous popover with legend, progress bar, and framed map.",
                 },
               ]}
             />

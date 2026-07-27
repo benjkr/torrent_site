@@ -36,7 +36,10 @@ import { cn } from "@/lib/utils";
 import { imdbIdFromTags } from "@/lib/imdb";
 import { softWashFill, useDominantColor } from "@/lib/dominant-color";
 import type { TorrentInfo, FileInfo, ImdbMeta } from "../lib/types";
-import PieceStatusBookmark from "./PieceStatusBookmark";
+import PieceStatusBookmark, {
+  type PiecePopupStyle,
+  type PieceStatusVariant,
+} from "./PieceStatusBookmark";
 
 function isPausedState(state: string) {
   const s = String(state).toLowerCase();
@@ -179,10 +182,16 @@ function Cover({ model }: { model: CardModel }) {
   );
 }
 
-function TitleBlock({ model }: { model: CardModel }) {
+function TitleBlock({
+  model,
+  padForBookmark,
+}: {
+  model: CardModel;
+  padForBookmark?: boolean;
+}) {
   const { displayTitle, meta, torrent: t } = model;
   return (
-    <div className="min-w-0 pr-9 mb-1.5">
+    <div className={cn("mb-1.5 min-w-0", padForBookmark && "pr-9")}>
       <div
         className="font-semibold text-sm leading-tight truncate"
         title={displayTitle}
@@ -295,12 +304,41 @@ function TransferSpeed({
   );
 }
 
+function PeersField({
+  torrent: t,
+}: {
+  torrent: CardModel["torrent"];
+}) {
+  return (
+    <div
+      className="inline-flex h-4 items-center gap-1 text-[0.625rem] tabular-nums"
+      title={`${t.num_seeds ?? 0} seeds · ${t.num_leechs ?? t.num_leechers ?? 0} leeches`}
+    >
+      <span className="inline-flex items-center gap-0.5 text-emerald-500">
+        <SproutIcon className="size-3 shrink-0" />
+        <span className="font-semibold">{t.num_seeds ?? 0}</span>
+      </span>
+      <span className="text-muted-foreground/40">/</span>
+      <span className="inline-flex items-center gap-0.5 text-red-500">
+        <UsersIcon className="size-3 shrink-0" />
+        <span className="font-semibold">
+          {t.num_leechs ?? t.num_leechers ?? 0}
+        </span>
+      </span>
+    </div>
+  );
+}
+
 function StatsGrid({
   model,
   filesViewerStyle,
+  piecesVariant,
+  piecesPopupStyle,
 }: {
   model: CardModel;
   filesViewerStyle: TorrentFilesViewerStyle;
+  piecesVariant: PieceStatusVariant;
+  piecesPopupStyle: PiecePopupStyle;
 }) {
   const {
     torrent: t,
@@ -314,9 +352,11 @@ function StatsGrid({
     complete,
   } = model;
 
+  const fieldPieces = piecesVariant === "field";
+
   return (
-    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2.5">
-      <div className="flex items-center gap-1 min-w-0">
+    <div className="mb-2.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
+      <div className="flex min-w-0 items-center gap-1">
         <ClockIcon className="size-3 shrink-0" />
         <span className="truncate" title={added || undefined}>
           {added || "—"}
@@ -339,26 +379,24 @@ function StatsGrid({
         {formatBytes(t.size || 0)}
       </div>
 
-      {complete ? (
+      {fieldPieces ? (
+        <PieceStatusBookmark
+          hash={t.hash}
+          variant="field"
+          popupStyle={piecesPopupStyle}
+        />
+      ) : complete ? (
         <div aria-hidden className="min-h-4" />
       ) : (
-        <div
-          className="inline-flex h-4 items-center gap-1 text-[0.625rem] tabular-nums"
-          title={`${t.num_seeds ?? 0} seeds · ${t.num_leechs ?? t.num_leechers ?? 0} leeches`}
-        >
-          <span className="inline-flex items-center gap-0.5 text-emerald-500">
-            <SproutIcon className="size-3 shrink-0" />
-            <span className="font-semibold">{t.num_seeds ?? 0}</span>
-          </span>
-          <span className="text-muted-foreground/40">/</span>
-          <span className="inline-flex items-center gap-0.5 text-red-500">
-            <UsersIcon className="size-3 shrink-0" />
-            <span className="font-semibold">
-              {t.num_leechs ?? t.num_leechers ?? 0}
-            </span>
-          </span>
-        </div>
+        <PeersField torrent={t} />
       )}
+
+      {fieldPieces && !complete ? (
+        <>
+          <PeersField torrent={t} />
+          <div aria-hidden className="min-h-4" />
+        </>
+      ) : null}
 
       <div className="col-span-2 min-w-0">
         <TransferSpeed
@@ -948,6 +986,16 @@ export interface LibraryTorrentCardProps {
    * `legacy` = previous flat list — Library Debug only.
    */
   filesViewerStyle?: TorrentFilesViewerStyle;
+  /**
+   * Piece status presentation. `field` = stats cell under Files (default).
+   * `bookmark` = previous ribbon — Library Debug only.
+   */
+  piecesVariant?: PieceStatusVariant;
+  /**
+   * Pieces hover popup. `float` = Ring·Line glass (default).
+   * `legacy` = previous framed popover — Library Debug only.
+   */
+  piecesPopupStyle?: PiecePopupStyle;
 }
 
 const glassShell = cn(
@@ -965,6 +1013,12 @@ export function LibraryTorrentCard(props: LibraryTorrentCardProps) {
   const completeAction = props.completeAction ?? "logo";
   const seedOffStyle = props.seedOffStyle ?? "red";
   const filesViewerStyle = props.filesViewerStyle ?? "dense-glass";
+  const piecesVariant: PieceStatusVariant = import.meta.env.DEV
+    ? (props.piecesVariant ?? "field")
+    : "field";
+  const piecesPopupStyle: PiecePopupStyle = import.meta.env.DEV
+    ? (props.piecesPopupStyle ?? "float")
+    : "float";
   const dominantColor = useDominantColor(model.meta?.image);
 
   return (
@@ -985,12 +1039,26 @@ export function LibraryTorrentCard(props: LibraryTorrentCardProps) {
     >
       <Cover model={model} />
       <div className="relative flex min-w-0 flex-1 flex-col p-3 pl-3">
-        <div className="pointer-events-auto absolute top-0 right-2.5 z-10 -translate-y-px">
-          <PieceStatusBookmark hash={model.torrent.hash} />
-        </div>
-        <TitleBlock model={model} />
+        {piecesVariant === "bookmark" ? (
+          <div className="pointer-events-auto absolute top-0 right-2.5 z-10 -translate-y-px">
+            <PieceStatusBookmark
+              hash={model.torrent.hash}
+              variant="bookmark"
+              popupStyle={piecesPopupStyle}
+            />
+          </div>
+        ) : null}
+        <TitleBlock
+          model={model}
+          padForBookmark={piecesVariant === "bookmark"}
+        />
         <StatusChips model={model} glass={!legacy} />
-        <StatsGrid model={model} filesViewerStyle={filesViewerStyle} />
+        <StatsGrid
+          model={model}
+          filesViewerStyle={filesViewerStyle}
+          piecesVariant={piecesVariant}
+          piecesPopupStyle={piecesPopupStyle}
+        />
         <ActionRow
           model={model}
           className="mt-auto"
