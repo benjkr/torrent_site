@@ -1,6 +1,8 @@
 export type AppVersion = {
   tag: string;
   commit: string;
+  /** Present in DEV live git responses only. */
+  branch?: string;
 };
 
 /** Build-time git tag + short commit (injected by Vite). */

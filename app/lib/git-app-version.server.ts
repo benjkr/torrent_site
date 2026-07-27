@@ -10,10 +10,11 @@ function git(command: string, fallback: string): string {
   }
 }
 
-/** Live git tag + short commit (server / DEV only). */
+/** Live git tag + short commit + branch (server / DEV only). */
 export function readAppVersionFromGit(): AppVersion {
   return {
     tag: git("git describe --tags --abbrev=0", "0.0.0"),
     commit: git("git rev-parse --short HEAD", "unknown"),
+    branch: git("git rev-parse --abbrev-ref HEAD", "unknown"),
   };
 }
