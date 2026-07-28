@@ -13,6 +13,11 @@ import type {
   SearchDrawerHeight,
 } from "@/components/SearchBar";
 import type { TorrentFilesViewerStyle } from "@/components/TorrentFilesHoverCard";
+import type {
+  EpisodeGraphAnim,
+  EpisodeGraphFit,
+  ShowViewerStyle,
+} from "@/components/ImdbTitleCard";
 import { cn } from "@/lib/utils";
 import type { SearchDebugInfo } from "@/lib/types";
 
@@ -44,6 +49,12 @@ interface SearchDebugPanelProps {
   onFiltersStyleChange: (v: SearchFiltersStyle) => void;
   drawerHeight: SearchDrawerHeight;
   onDrawerHeightChange: (v: SearchDrawerHeight) => void;
+  showViewer: ShowViewerStyle;
+  onShowViewerChange: (v: ShowViewerStyle) => void;
+  episodeGraphFit: EpisodeGraphFit;
+  onEpisodeGraphFitChange: (v: EpisodeGraphFit) => void;
+  episodeGraphAnim: EpisodeGraphAnim;
+  onEpisodeGraphAnimChange: (v: EpisodeGraphAnim) => void;
 }
 
 function JsonBlock({
@@ -108,6 +119,12 @@ export default function SearchDebugPanel({
   onFiltersStyleChange,
   drawerHeight,
   onDrawerHeightChange,
+  showViewer,
+  onShowViewerChange,
+  episodeGraphFit,
+  onEpisodeGraphFitChange,
+  episodeGraphAnim,
+  onEpisodeGraphAnimChange,
 }: SearchDebugPanelProps) {
   const [open, setOpen] = useState(false);
 
@@ -153,6 +170,130 @@ export default function SearchDebugPanel({
           </header>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
+            <section className="flex items-center justify-between gap-3">
+              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                Show
+              </h3>
+              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+                {(
+                  [
+                    {
+                      id: "marquee" as const,
+                      label: "Marquee",
+                      hint: "Footer · Underline chart, sticky full-height (default)",
+                    },
+                    {
+                      id: "classic" as const,
+                      label: "Classic",
+                      hint: "Previous narrow poster + green episode grid",
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const on = showViewer === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      title={opt.hint}
+                      onClick={() => onShowViewerChange(opt.id)}
+                      className={cn(
+                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                        on
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:text-foreground",
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {showViewer === "marquee" ? (
+              <>
+                <section className="flex items-center justify-between gap-3">
+                  <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ep graph
+                  </h3>
+                  <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+                    {(
+                      [
+                        {
+                          id: "stretch" as const,
+                          label: "Stretch",
+                          hint: "Grow only if bars would leave empty space; else keep w-7 (default)",
+                        },
+                        {
+                          id: "fixed" as const,
+                          label: "Fixed",
+                          hint: "Always equal w-7 bars; empty space when few episodes",
+                        },
+                      ] as const
+                    ).map((opt) => {
+                      const on = episodeGraphFit === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          title={opt.hint}
+                          onClick={() => onEpisodeGraphFitChange(opt.id)}
+                          className={cn(
+                            "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                            on
+                              ? "bg-foreground text-background shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="flex items-center justify-between gap-3">
+                  <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                    Ep anim
+                  </h3>
+                  <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+                    {(
+                      [
+                        {
+                          id: "raise" as const,
+                          label: "Raise",
+                          hint: "Staggered bars rise to height on season change (default)",
+                        },
+                        {
+                          id: "off" as const,
+                          label: "Off",
+                          hint: "Prior instant bars, no entrance animation",
+                        },
+                      ] as const
+                    ).map((opt) => {
+                      const on = episodeGraphAnim === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          title={opt.hint}
+                          onClick={() => onEpisodeGraphAnimChange(opt.id)}
+                          className={cn(
+                            "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                            on
+                              ? "bg-foreground text-background shadow-sm"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              </>
+            ) : null}
+
             <section className="flex items-center justify-between gap-3">
               <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
                 Bar

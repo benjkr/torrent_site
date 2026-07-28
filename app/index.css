@@ -141,6 +141,27 @@
   --imdb-on: #141414;
 }
 
+@keyframes ep-bar-raise {
+  from {
+    transform: scaleY(0);
+    opacity: 0.35;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+.ep-bar-raise {
+  animation: ep-bar-raise 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ep-bar-raise {
+    animation: none;
+  }
+}
+
 @keyframes imdb-border-spread {
   0% {
     clip-path: circle(0.25rem at 1.6875rem 0);

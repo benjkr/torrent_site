@@ -18,6 +18,9 @@ import SearchSortStrip, {
 import type { TorrentFilesViewerStyle } from "../components/TorrentFilesHoverCard";
 import ImdbTitleCard, {
   type EpisodeSelection,
+  type EpisodeGraphAnim,
+  type EpisodeGraphFit,
+  type ShowViewerStyle,
 } from "../components/ImdbTitleCard";
 import SearchDebugPanel from "../components/SearchDebugPanel";
 import type {
@@ -151,8 +154,25 @@ export default function SearchPage() {
     useState<SearchFiltersStyle>("drawer");
   const [drawerHeight, setDrawerHeight] =
     useState<SearchDrawerHeight>("tight");
+  const [showViewer, setShowViewer] = useState<ShowViewerStyle>("marquee");
+  const [episodeGraphFit, setEpisodeGraphFit] =
+    useState<EpisodeGraphFit>("stretch");
+  const [episodeGraphAnim, setEpisodeGraphAnim] =
+    useState<EpisodeGraphAnim>("raise");
   const [sortKey, setSortKey] = useState<SearchSortKey>("seeders");
   const [sortDir, setSortDir] = useState<SearchSortDir>("desc");
+
+  const showViewerStyle: ShowViewerStyle = import.meta.env.DEV
+    ? showViewer
+    : "marquee";
+  const classicShowLayout =
+    import.meta.env.DEV && showViewerStyle === "classic";
+  const episodeGraphFitStyle: EpisodeGraphFit = import.meta.env.DEV
+    ? episodeGraphFit
+    : "stretch";
+  const episodeGraphAnimStyle: EpisodeGraphAnim = import.meta.env.DEV
+    ? episodeGraphAnim
+    : "raise";
 
   const searchFetcher = useFetcher<SearchResponse>();
   const libraryFetcher = useFetcher<TorrentInfo[]>();
@@ -399,22 +419,35 @@ export default function SearchPage() {
       <div
         className={
           imdbSelection
-            ? "mt-1 grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]"
+            ? classicShowLayout
+              ? "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]"
+              : // max-content card (poster width); 1fr = results fill remaining page width
+                "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,max-content)_minmax(0,1fr)]"
             : "mt-1 block"
         }
       >
         {imdbSelection ? (
-          <aside className="lg:sticky lg:top-20 lg:self-start">
+          <aside
+            className={
+              classicShowLayout
+                ? "lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] lg:self-start"
+                : // min-w-0 + overflow-hidden: episode chart scroll must not widen this column
+                  "min-w-0 max-w-full overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:self-start"
+            }
+          >
             <ImdbTitleCard
               selection={imdbSelection}
               episodeSelection={episodeSelection}
               onEpisodeChange={handleEpisodeChange}
               onClear={handleClearImdb}
+              viewerStyle={showViewerStyle}
+              episodeGraphFit={episodeGraphFitStyle}
+              episodeGraphAnim={episodeGraphAnimStyle}
             />
           </aside>
         ) : null}
 
-        <section className="min-w-0">
+        <section className="min-w-0 w-full">
           {hasQueried || items.length > 0 ? (
             <>
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
@@ -527,6 +560,12 @@ export default function SearchPage() {
           onFiltersStyleChange={setFiltersStyle}
           drawerHeight={drawerHeight}
           onDrawerHeightChange={setDrawerHeight}
+          showViewer={showViewer}
+          onShowViewerChange={setShowViewer}
+          episodeGraphFit={episodeGraphFit}
+          onEpisodeGraphFitChange={setEpisodeGraphFit}
+          episodeGraphAnim={episodeGraphAnim}
+          onEpisodeGraphAnimChange={setEpisodeGraphAnim}
         />
       ) : null}
     </div>
