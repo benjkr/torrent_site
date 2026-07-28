@@ -1,13 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher, useSearchParams } from "react-router";
-import SearchBar, {
-  type SearchBarChrome,
-  type SearchDrawerHeight,
-  type SearchFiltersStyle,
-} from "../components/SearchBar";
+import SearchBar from "../components/SearchBar";
 import SearchResults, {
-  type SearchResultsMeta,
-  type SearchResultsRows,
   type SearchResultsView,
 } from "../components/SearchResultsTable";
 import SearchSortStrip, {
@@ -15,12 +9,8 @@ import SearchSortStrip, {
   type SearchSortDir,
   type SearchSortKey,
 } from "../components/SearchSortStrip";
-import type { TorrentFilesViewerStyle } from "../components/TorrentFilesHoverCard";
 import ImdbTitleCard, {
   type EpisodeSelection,
-  type EpisodeGraphAnim,
-  type EpisodeGraphFit,
-  type ShowViewerStyle,
 } from "../components/ImdbTitleCard";
 import SearchDebugPanel from "../components/SearchDebugPanel";
 import type {
@@ -142,37 +132,9 @@ export default function SearchPage() {
   const [clearSignal, setClearSignal] = useState(0);
   const [searchDebug, setSearchDebug] = useState<SearchDebugInfo | null>(null);
   const [lastSearchApiUrl, setLastSearchApiUrl] = useState<string | null>(null);
-  const [resultsView, setResultsView] = useState<SearchResultsView>("dense");
-  const [resultsRows, setResultsRows] =
-    useState<SearchResultsRows>("separated");
-  const [resultsMeta, setResultsMeta] =
-    useState<SearchResultsMeta>("dot-rail");
-  const [filesViewerStyle, setFilesViewerStyle] =
-    useState<TorrentFilesViewerStyle>("dense-glass");
-  const [barChrome, setBarChrome] = useState<SearchBarChrome>("ghost");
-  const [filtersStyle, setFiltersStyle] =
-    useState<SearchFiltersStyle>("drawer");
-  const [drawerHeight, setDrawerHeight] =
-    useState<SearchDrawerHeight>("tight");
-  const [showViewer, setShowViewer] = useState<ShowViewerStyle>("marquee");
-  const [episodeGraphFit, setEpisodeGraphFit] =
-    useState<EpisodeGraphFit>("stretch");
-  const [episodeGraphAnim, setEpisodeGraphAnim] =
-    useState<EpisodeGraphAnim>("raise");
   const [sortKey, setSortKey] = useState<SearchSortKey>("seeders");
   const [sortDir, setSortDir] = useState<SearchSortDir>("desc");
-
-  const showViewerStyle: ShowViewerStyle = import.meta.env.DEV
-    ? showViewer
-    : "marquee";
-  const classicShowLayout =
-    import.meta.env.DEV && showViewerStyle === "classic";
-  const episodeGraphFitStyle: EpisodeGraphFit = import.meta.env.DEV
-    ? episodeGraphFit
-    : "stretch";
-  const episodeGraphAnimStyle: EpisodeGraphAnim = import.meta.env.DEV
-    ? episodeGraphAnim
-    : "raise";
+  const [resultsView, setResultsView] = useState<SearchResultsView>("well");
 
   const searchFetcher = useFetcher<SearchResponse>();
   const libraryFetcher = useFetcher<TorrentInfo[]>();
@@ -411,38 +373,23 @@ export default function SearchPage() {
         initialFilters={query ? filters : undefined}
         imdbMode={imdbMode}
         onImdbModeChange={setImdbMode}
-        chrome={import.meta.env.DEV ? barChrome : "ghost"}
-        filtersStyle={import.meta.env.DEV ? filtersStyle : "drawer"}
-        drawerHeight={import.meta.env.DEV ? drawerHeight : "tight"}
       />
 
       <div
         className={
           imdbSelection
-            ? classicShowLayout
-              ? "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(15rem,18rem)_minmax(0,1fr)]"
-              : // max-content card (poster width); 1fr = results fill remaining page width
-                "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,max-content)_minmax(0,1fr)]"
+            ? // max-content card (poster width); 1fr = results fill remaining page width
+              "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,max-content)_minmax(0,1fr)]"
             : "mt-1 block"
         }
       >
         {imdbSelection ? (
-          <aside
-            className={
-              classicShowLayout
-                ? "lg:sticky lg:top-20 lg:h-[calc(100vh-5rem)] lg:self-start"
-                : // min-w-0 + overflow-hidden: episode chart scroll must not widen this column
-                  "min-w-0 max-w-full overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:self-start"
-            }
-          >
+          <aside className="min-w-0 max-w-full overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:self-start">
             <ImdbTitleCard
               selection={imdbSelection}
               episodeSelection={episodeSelection}
               onEpisodeChange={handleEpisodeChange}
               onClear={handleClearImdb}
-              viewerStyle={showViewerStyle}
-              episodeGraphFit={episodeGraphFitStyle}
-              episodeGraphAnim={episodeGraphAnimStyle}
             />
           </aside>
         ) : null}
@@ -482,12 +429,7 @@ export default function SearchPage() {
                 isLoading={isLoading}
                 libraryHashes={libraryHashes}
                 qbOnline={qbOnline}
-                view={import.meta.env.DEV ? resultsView : "dense"}
-                rows={import.meta.env.DEV ? resultsRows : "separated"}
-                meta={import.meta.env.DEV ? resultsMeta : "dot-rail"}
-                filesViewerStyle={
-                  import.meta.env.DEV ? filesViewerStyle : "dense-glass"
-                }
+                resultsView={resultsView}
               />
 
               {filteredTotal > PPER && (
@@ -548,24 +490,6 @@ export default function SearchPage() {
           }}
           resultsView={resultsView}
           onResultsViewChange={setResultsView}
-          resultsRows={resultsRows}
-          onResultsRowsChange={setResultsRows}
-          resultsMeta={resultsMeta}
-          onResultsMetaChange={setResultsMeta}
-          filesViewerStyle={filesViewerStyle}
-          onFilesViewerStyleChange={setFilesViewerStyle}
-          barChrome={barChrome}
-          onBarChromeChange={setBarChrome}
-          filtersStyle={filtersStyle}
-          onFiltersStyleChange={setFiltersStyle}
-          drawerHeight={drawerHeight}
-          onDrawerHeightChange={setDrawerHeight}
-          showViewer={showViewer}
-          onShowViewerChange={setShowViewer}
-          episodeGraphFit={episodeGraphFit}
-          onEpisodeGraphFitChange={setEpisodeGraphFit}
-          episodeGraphAnim={episodeGraphAnim}
-          onEpisodeGraphAnimChange={setEpisodeGraphAnim}
         />
       ) : null}
     </div>

@@ -2,22 +2,7 @@ import { useState, type ReactNode } from "react";
 import { BugIcon, CopyIcon, XIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import type {
-  SearchResultsMeta,
-  SearchResultsRows,
-  SearchResultsView,
-} from "@/components/SearchResultsTable";
-import type {
-  SearchBarChrome,
-  SearchFiltersStyle,
-  SearchDrawerHeight,
-} from "@/components/SearchBar";
-import type { TorrentFilesViewerStyle } from "@/components/TorrentFilesHoverCard";
-import type {
-  EpisodeGraphAnim,
-  EpisodeGraphFit,
-  ShowViewerStyle,
-} from "@/components/ImdbTitleCard";
+import type { SearchResultsView } from "@/components/SearchResultsTable";
 import { cn } from "@/lib/utils";
 import type { SearchDebugInfo } from "@/lib/types";
 
@@ -37,24 +22,47 @@ interface SearchDebugPanelProps {
   client: SearchClientDebug;
   resultsView: SearchResultsView;
   onResultsViewChange: (v: SearchResultsView) => void;
-  resultsRows: SearchResultsRows;
-  onResultsRowsChange: (v: SearchResultsRows) => void;
-  resultsMeta: SearchResultsMeta;
-  onResultsMetaChange: (v: SearchResultsMeta) => void;
-  filesViewerStyle: TorrentFilesViewerStyle;
-  onFilesViewerStyleChange: (v: TorrentFilesViewerStyle) => void;
-  barChrome: SearchBarChrome;
-  onBarChromeChange: (v: SearchBarChrome) => void;
-  filtersStyle: SearchFiltersStyle;
-  onFiltersStyleChange: (v: SearchFiltersStyle) => void;
-  drawerHeight: SearchDrawerHeight;
-  onDrawerHeightChange: (v: SearchDrawerHeight) => void;
-  showViewer: ShowViewerStyle;
-  onShowViewerChange: (v: ShowViewerStyle) => void;
-  episodeGraphFit: EpisodeGraphFit;
-  onEpisodeGraphFitChange: (v: EpisodeGraphFit) => void;
-  episodeGraphAnim: EpisodeGraphAnim;
-  onEpisodeGraphAnimChange: (v: EpisodeGraphAnim) => void;
+}
+
+function FlagGroup<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T;
+  options: { id: T; label: string; hint: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <section className="flex items-center justify-between gap-3">
+      <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+        {label}
+      </h3>
+      <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+        {options.map((opt) => {
+          const on = value === opt.id;
+          return (
+            <button
+              key={opt.id}
+              type="button"
+              title={opt.hint}
+              onClick={() => onChange(opt.id)}
+              className={cn(
+                "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
+                on
+                  ? "bg-foreground text-background shadow-sm"
+                  : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
 }
 
 function JsonBlock({
@@ -107,24 +115,6 @@ export default function SearchDebugPanel({
   client,
   resultsView,
   onResultsViewChange,
-  resultsRows,
-  onResultsRowsChange,
-  resultsMeta,
-  onResultsMetaChange,
-  filesViewerStyle,
-  onFilesViewerStyleChange,
-  barChrome,
-  onBarChromeChange,
-  filtersStyle,
-  onFiltersStyleChange,
-  drawerHeight,
-  onDrawerHeightChange,
-  showViewer,
-  onShowViewerChange,
-  episodeGraphFit,
-  onEpisodeGraphFitChange,
-  episodeGraphAnim,
-  onEpisodeGraphAnimChange,
 }: SearchDebugPanelProps) {
   const [open, setOpen] = useState(false);
 
@@ -170,419 +160,38 @@ export default function SearchDebugPanel({
           </header>
 
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
-            <section className="flex items-center justify-between gap-3">
-              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                Show
-              </h3>
-              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                {(
-                  [
-                    {
-                      id: "marquee" as const,
-                      label: "Marquee",
-                      hint: "Footer · Underline chart, sticky full-height (default)",
-                    },
-                    {
-                      id: "classic" as const,
-                      label: "Classic",
-                      hint: "Previous narrow poster + green episode grid",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const on = showViewer === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      title={opt.hint}
-                      onClick={() => onShowViewerChange(opt.id)}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                        on
-                          ? "bg-foreground text-background shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {showViewer === "marquee" ? (
-              <>
-                <section className="flex items-center justify-between gap-3">
-                  <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Ep graph
-                  </h3>
-                  <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                    {(
-                      [
-                        {
-                          id: "stretch" as const,
-                          label: "Stretch",
-                          hint: "Grow only if bars would leave empty space; else keep w-7 (default)",
-                        },
-                        {
-                          id: "fixed" as const,
-                          label: "Fixed",
-                          hint: "Always equal w-7 bars; empty space when few episodes",
-                        },
-                      ] as const
-                    ).map((opt) => {
-                      const on = episodeGraphFit === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          title={opt.hint}
-                          onClick={() => onEpisodeGraphFitChange(opt.id)}
-                          className={cn(
-                            "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                            on
-                              ? "bg-foreground text-background shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-
-                <section className="flex items-center justify-between gap-3">
-                  <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                    Ep anim
-                  </h3>
-                  <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                    {(
-                      [
-                        {
-                          id: "raise" as const,
-                          label: "Raise",
-                          hint: "Staggered bars rise to height on season change (default)",
-                        },
-                        {
-                          id: "off" as const,
-                          label: "Off",
-                          hint: "Prior instant bars, no entrance animation",
-                        },
-                      ] as const
-                    ).map((opt) => {
-                      const on = episodeGraphAnim === opt.id;
-                      return (
-                        <button
-                          key={opt.id}
-                          type="button"
-                          title={opt.hint}
-                          onClick={() => onEpisodeGraphAnimChange(opt.id)}
-                          className={cn(
-                            "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                            on
-                              ? "bg-foreground text-background shadow-sm"
-                              : "text-muted-foreground hover:text-foreground",
-                          )}
-                        >
-                          {opt.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </section>
-              </>
-            ) : null}
-
-            <section className="flex items-center justify-between gap-3">
-              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                Bar
-              </h3>
-              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                {(
-                  [
-                    {
-                      id: "ghost" as const,
-                      label: "Ghost",
-                      hint: "Chrome · Ghost capsule + split drawer (default)",
-                    },
-                    {
-                      id: "classic" as const,
-                      label: "Classic",
-                      hint: "Previous island + Search button + IMDb in drawer",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const on = barChrome === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      title={opt.hint}
-                      onClick={() => onBarChromeChange(opt.id)}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                        on
-                          ? "bg-foreground text-background shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {barChrome === "classic" ? (
-              <>
-            <section className="flex items-center justify-between gap-3">
-              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                Filters
-              </h3>
-              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                {(
-                  [
-                    {
-                      id: "drawer" as const,
-                      label: "Drawer",
-                      hint: "Soft-pill strip in slight-inset black drawer (default)",
-                    },
-                    {
-                      id: "legacy" as const,
-                      label: "Legacy",
-                      hint: "Previous floating glass dock pills",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const on = filtersStyle === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      title={opt.hint}
-                      onClick={() => onFiltersStyleChange(opt.id)}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                        on
-                          ? "bg-foreground text-background shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {filtersStyle === "drawer" ? (
-              <section className="flex items-center justify-between gap-3">
-                <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Drawer
-                </h3>
-                <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                  {(
-                    [
-                      {
-                        id: "tight" as const,
-                        label: "Tight",
-                        hint: "Locked h-7 chips, lighter tuck (default)",
-                      },
-                      {
-                        id: "tall" as const,
-                        label: "Tall",
-                        hint: "Previous roomier drawer padding",
-                      },
-                    ] as const
-                  ).map((opt) => {
-                    const on = drawerHeight === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        title={opt.hint}
-                        onClick={() => onDrawerHeightChange(opt.id)}
-                        className={cn(
-                          "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                          on
-                            ? "bg-foreground text-background shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-              </>
-            ) : null}
-
-            <section className="flex items-center justify-between gap-3">
-              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                Results
-              </h3>
-              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                {(
-                  [
-                    {
-                      id: "dense" as const,
-                      label: "Dense",
-                      hint: "A2 icon-row layout (production default)",
-                    },
-                    {
-                      id: "legacy" as const,
-                      label: "Legacy",
-                      hint: "Previous card layout with tags and health chrome",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const on = resultsView === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      title={opt.hint}
-                      onClick={() => onResultsViewChange(opt.id)}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                        on
-                          ? "bg-foreground text-background shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {resultsView === "dense" ? (
-              <section className="flex items-center justify-between gap-3">
-                <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Rows
-                </h3>
-                <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                  {(
-                    [
-                      {
-                        id: "separated" as const,
-                        label: "Separated",
-                        hint: "Gapped rows inside a results container (default)",
-                      },
-                      {
-                        id: "flush" as const,
-                        label: "Flush",
-                        hint: "Previous stacked border-b rows",
-                      },
-                    ] as const
-                  ).map((opt) => {
-                    const on = resultsRows === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        title={opt.hint}
-                        onClick={() => onResultsRowsChange(opt.id)}
-                        className={cn(
-                          "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                          on
-                            ? "bg-foreground text-background shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            {resultsView === "dense" ? (
-              <section className="flex items-center justify-between gap-3">
-                <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Meta
-                </h3>
-                <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                  {(
-                    [
-                      {
-                        id: "dot-rail" as const,
-                        label: "Dot rail",
-                        hint: "· separators; seeders + leechers merged (default)",
-                      },
-                      {
-                        id: "plain" as const,
-                        label: "Plain",
-                        hint: "Previous tight icon row with separate peers",
-                      },
-                    ] as const
-                  ).map((opt) => {
-                    const on = resultsMeta === opt.id;
-                    return (
-                      <button
-                        key={opt.id}
-                        type="button"
-                        title={opt.hint}
-                        onClick={() => onResultsMetaChange(opt.id)}
-                        className={cn(
-                          "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                          on
-                            ? "bg-foreground text-background shadow-sm"
-                            : "text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
-            <section className="flex items-center justify-between gap-3">
-              <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                File viewer
-              </h3>
-              <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
-                {(
-                  [
-                    {
-                      id: "dense-glass" as const,
-                      label: "Dense glass",
-                      hint: "A2 frosted dense file list (production default)",
-                    },
-                    {
-                      id: "legacy" as const,
-                      label: "Legacy",
-                      hint: "Previous flat popover file list",
-                    },
-                  ] as const
-                ).map((opt) => {
-                  const on = filesViewerStyle === opt.id;
-                  return (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      title={opt.hint}
-                      onClick={() => onFilesViewerStyleChange(opt.id)}
-                      className={cn(
-                        "rounded px-2 py-0.5 text-[0.625rem] font-medium transition-colors",
-                        on
-                          ? "bg-foreground text-background shadow-sm"
-                          : "text-muted-foreground hover:text-foreground",
-                      )}
-                    >
-                      {opt.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
+            <div className="space-y-3">
+              <p className="text-[0.625rem] text-muted-foreground">
+                Dev-only. Production: Soft well · title trail.
+              </p>
+              <FlagGroup
+                label="Results"
+                value={resultsView}
+                onChange={onResultsViewChange}
+                options={[
+                  {
+                    id: "well",
+                    label: "Trail",
+                    hint: "Age under title; IMDb after title.",
+                  },
+                  {
+                    id: "meta",
+                    label: "Meta",
+                    hint: "Previous: age + IMDb in the meta row.",
+                  },
+                  {
+                    id: "chips",
+                    label: "Chips",
+                    hint: "Previous raised meta pills.",
+                  },
+                  {
+                    id: "clean",
+                    label: "Clean",
+                    hint: "Previous dense dotted meta list.",
+                  },
+                ]}
+              />
+            </div>
 
             <section className="space-y-2">
               <h3 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
