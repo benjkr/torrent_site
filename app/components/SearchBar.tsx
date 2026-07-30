@@ -103,7 +103,7 @@ export default function SearchBar({
   const [selectedImdb, setSelectedImdb] = useState<ImdbSuggestion | null>(
     initialImdb,
   );
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const justSelected = useRef(false);
   const userEdited = useRef(!initialQuery && !initialImdb);
