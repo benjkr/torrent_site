@@ -42,7 +42,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      rollupOptions: {
+      rolldownOptions: {
         onwarn(warning, warn) {
           if (warning.code === "EMPTY_BUNDLE") return;
           warn(warning);

@@ -37,7 +37,13 @@ process.on("SIGINT", () => shutdown(0));
 process.on("SIGTERM", () => shutdown(0));
 
 spawnChild(
-  ["bun", "--env-file=.env.development", "x", "react-router", "dev"],
+  [
+    "bun",
+    "--env-file=.env.development",
+    "--conditions=development",
+    "./node_modules/@react-router/dev/bin.cjs",
+    "dev",
+  ],
   "react-router",
 );
 spawnChild(

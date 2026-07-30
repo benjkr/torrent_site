@@ -380,7 +380,7 @@ function FloatPiecesBody({
   data: PiecePayload | null;
   loading: boolean;
   error: string | null;
-  canvasRef: RefObject<HTMLCanvasElement>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   sparks: Spark[];
 }) {
   return (
@@ -457,7 +457,7 @@ function LegacyPiecesBody({
   loading: boolean;
   error: string | null;
   pct: number | null;
-  canvasRef: RefObject<HTMLCanvasElement>;
+  canvasRef: RefObject<HTMLCanvasElement | null>;
   sparks: Spark[];
 }) {
   return (
