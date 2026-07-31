@@ -12,10 +12,14 @@ function git(command: string, fallback: string): string {
   }
 }
 
-function appVersionFromGit() {
+function appVersion() {
   return {
-    tag: git("git describe --tags --abbrev=0", "0.0.0"),
-    commit: git("git rev-parse --short HEAD", "unknown"),
+    tag:
+      process.env.VITE_APP_TAG ||
+      git("git describe --tags --abbrev=0", "0.0.0"),
+    commit:
+      process.env.VITE_APP_COMMIT ||
+      git("git rev-parse --short HEAD", "unknown"),
   };
 }
 
@@ -28,7 +32,7 @@ export default defineConfig(({ mode }) => {
     }
   }
 
-  const { tag, commit } = appVersionFromGit();
+  const { tag, commit } = appVersion();
 
   return {
     plugins: [reactRouter(), tailwindcss()],
