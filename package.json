@@ -7,7 +7,8 @@
     "dev:app": "bun --env-file=.env.development --conditions=development ./node_modules/@react-router/dev/bin.cjs dev",
     "dev:ws": "bun --env-file=.env.development run ./scripts/maindata-ws.ts",
     "build": "react-router build",
-    "start": "bun --env-file=.env.production run server.ts",
+    "start": "NODE_ENV=production bun --env-file=.env.production run server.ts",
+    "check:prod": "bun run build && bun run start",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
