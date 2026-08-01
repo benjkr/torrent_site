@@ -1,0 +1,12 @@
+---
+description: UI requests target PC by default; mobile only when explicitly mentioned
+alwaysApply: true
+---
+
+# UI target: PC by default
+
+When the user asks **any** question or makes **any** request about UI (layout, components, styling, chrome, spacing, etc.):
+
+- Consider **only the PC (desktop) version** — desktop components, breakpoints, and layout.
+- Do **not** change, discuss, or optimize mobile UI unless the user **explicitly** refers to mobile (e.g. “mobile”, “phone”, “small screen”).
+- When they do explicitly refer to mobile, work on mobile components and layout only for that request.

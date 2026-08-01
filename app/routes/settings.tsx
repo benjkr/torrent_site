@@ -245,7 +245,7 @@ export default function SettingsPage() {
             title="Downloads"
             description="Default paths used when adding new torrents."
           >
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @sm:grid-cols-2">
               <Field
                 id="save_path"
                 label="Default download folder"
@@ -290,12 +290,12 @@ export default function SettingsPage() {
             </div>
           </Section>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 @md:grid-cols-2">
             <Section
               title="Adding torrents"
               description="Defaults when a magnet is sent from Search."
             >
-              <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-1 xl:grid-cols-2">
+              <div className="grid gap-3 @sm:grid-cols-2 @md:grid-cols-1 @xl:grid-cols-2">
                 <SwitchRow
                   label="Start paused"
                   hint="Add paused instead of downloading."
@@ -350,8 +350,8 @@ export default function SettingsPage() {
             title="Queueing"
             description="Limit how many torrents are active at once."
           >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div className="sm:w-56 sm:shrink-0">
+            <div className="flex flex-col gap-4 @sm:flex-row @sm:items-start">
+              <div className="@sm:w-56 @sm:shrink-0">
                 <SwitchRow
                   label="Enable queueing"
                   hint="Enforce active download/upload caps."
