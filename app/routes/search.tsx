@@ -379,12 +379,12 @@ export default function SearchPage() {
         className={
           imdbSelection
             ? // max-content card (poster width); 1fr = results fill remaining page width
-              "mt-1 grid grid-cols-1 items-start gap-3 lg:grid-cols-[minmax(0,max-content)_minmax(0,1fr)]"
+              "mt-1 grid grid-cols-1 items-start gap-3 @lg:grid-cols-[minmax(0,max-content)_minmax(0,1fr)]"
             : "mt-1 block"
         }
       >
         {imdbSelection ? (
-          <aside className="min-w-0 max-w-full overflow-hidden lg:sticky lg:top-20 lg:max-h-[calc(100vh-5rem)] lg:self-start">
+          <aside className="min-w-0 max-w-full overflow-hidden @lg:sticky @lg:top-20 @lg:max-h-[calc(100vh-5rem)] @lg:self-start">
             <ImdbTitleCard
               selection={imdbSelection}
               episodeSelection={episodeSelection}

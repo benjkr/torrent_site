@@ -3,17 +3,16 @@ import type { LinksFunction } from "react-router";
 import {
   Links,
   Meta,
-  Outlet,
   Scripts,
   ScrollRestoration,
 } from "react-router";
 
 import "./index.css";
-import { DebugPagesNav } from "@/components/DebugPagesNav";
-import { DevBookmark } from "@/components/DevBookmark";
-import { QbOfflineBanner } from "@/components/QbOfflineBanner";
-import { StatusCorner } from "@/components/StatusCorner";
-import { TopNav } from "@/components/TopNav";
+import { AppShell as DesktopAppShell } from "@/components/desktop/layout/AppShell";
+import { AppShell as MobileAppShell } from "@/components/mobile/layout/AppShell";
+import { DebugPagesNav } from "@/components/shared/DebugPagesNav";
+import { ForceMobileToggle } from "@/components/shared/ForceMobileToggle";
+import { PlatformRoot } from "@/components/shared/ViewportGate";
 import { MaindataProvider } from "./lib/maindata";
 import { QbDebugProvider } from "./lib/qb-debug";
 import { QbStatusProvider, useQbStatus } from "./lib/qb-status";
@@ -33,17 +32,16 @@ export const links: LinksFunction = () => [
 
 function AppShell() {
   const { online } = useQbStatus();
+  const disabled = !online;
 
   return (
     <>
-      <TopNav disabled={!online} />
-      <QbOfflineBanner />
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <Outlet />
-      </main>
-      <StatusCorner />
-      {import.meta.env.DEV ? <DevBookmark /> : null}
+      <PlatformRoot
+        mobile={<MobileAppShell disabled={disabled} />}
+        desktop={<DesktopAppShell disabled={disabled} />}
+      />
       {import.meta.env.DEV ? <DebugPagesNav /> : null}
+      {import.meta.env.DEV ? <ForceMobileToggle /> : null}
     </>
   );
 }
