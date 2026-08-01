@@ -13,6 +13,7 @@ import type {
   LibraryChromeDensity,
   LibraryChromeView,
 } from "@/components/shared/library/chrome";
+import type { LibrarySimScenario } from "@/lib/library-sim-torrent";
 import { cn } from "@/lib/utils";
 
 export type LibraryCardView = "glass" | "legacy";
@@ -22,6 +23,7 @@ export type LibraryCompleteAction = "logo" | "capsule";
 export type LibrarySeedOffStyle = "red" | "muted";
 export type LibraryPiecesVariant = PieceStatusVariant;
 export type LibraryPiecesPopupStyle = PiecePopupStyle;
+export type { LibrarySimScenario };
 
 interface LibraryDebugPanelProps {
   chromeView: LibraryChromeView;
@@ -44,6 +46,8 @@ interface LibraryDebugPanelProps {
   onPiecesVariantChange: (v: LibraryPiecesVariant) => void;
   piecesPopupStyle: LibraryPiecesPopupStyle;
   onPiecesPopupStyleChange: (v: LibraryPiecesPopupStyle) => void;
+  simScenario: LibrarySimScenario;
+  onSimScenarioChange: (v: LibrarySimScenario) => void;
 }
 
 function FlagGroup<T extends string>({
@@ -62,7 +66,7 @@ function FlagGroup<T extends string>({
       <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
         {label}
       </h3>
-      <div className="inline-flex rounded-md border border-border/60 bg-muted/30 p-0.5">
+      <div className="inline-flex max-w-[min(100%,18rem)] flex-wrap justify-end rounded-md border border-border/60 bg-muted/30 p-0.5">
         {options.map((opt) => {
           const on = value === opt.id;
           return (
@@ -108,6 +112,8 @@ export default function LibraryDebugPanel({
   onPiecesVariantChange,
   piecesPopupStyle,
   onPiecesPopupStyleChange,
+  simScenario,
+  onSimScenarioChange,
 }: LibraryDebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -159,10 +165,58 @@ export default function LibraryDebugPanel({
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
             <p className="text-[0.625rem] text-muted-foreground">
-              Dev-only. Production: Compact chrome, Tight density, Original
-              cards, Cover fill, Frosted actions, Seed logo, Red seed-off,
-              Pieces field, Float popup.
+              Dev-only. Production: Sim off, Compact chrome, Tight density,
+              Original cards, Cover fill, Frosted actions, Seed logo, Red
+              seed-off, Pieces field, Float popup.
             </p>
+
+            <FlagGroup
+              label="Sim card"
+              value={simScenario}
+              onChange={onSimScenarioChange}
+              options={[
+                {
+                  id: "off",
+                  label: "Off",
+                  hint: "Hide the fake simulator torrent card.",
+                },
+                {
+                  id: "downloading",
+                  label: "Down",
+                  hint: "Fake downloading card with animated progress + sparkles.",
+                },
+                {
+                  id: "paused",
+                  label: "Pause",
+                  hint: "Fake mid-download paused card.",
+                },
+                {
+                  id: "stalled",
+                  label: "Stall",
+                  hint: "Fake stalled download card.",
+                },
+                {
+                  id: "queued",
+                  label: "Queue",
+                  hint: "Fake queued download card.",
+                },
+                {
+                  id: "seeding",
+                  label: "Seed",
+                  hint: "Fake complete seeding card with upload sparkles.",
+                },
+                {
+                  id: "finished",
+                  label: "Done",
+                  hint: "Fake finished (paused after complete) card.",
+                },
+                {
+                  id: "error",
+                  label: "Error",
+                  hint: "Fake error-state card.",
+                },
+              ]}
+            />
 
             <FlagGroup
               label="Filters chrome"

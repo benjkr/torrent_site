@@ -86,9 +86,31 @@ export default function LibraryPage() {
       state === "offline"
         ? qbError || "qBittorrent is unreachable"
         : "Waiting for qBittorrent…";
+    // DEV: still render the table so the simulator card can be used offline.
+    if (!import.meta.env.DEV) {
+      return (
+        <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Library unavailable — {message}
+        </div>
+      );
+    }
     return (
-      <div className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
-        Library unavailable — {message}
+      <div>
+        <div className="mb-3 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          Library unavailable — {message} (DEV: simulator still available)
+        </div>
+        <LibraryTable
+          torrents={[]}
+          filesMap={{}}
+          onFetchFiles={() => {}}
+          onDownloadFile={() => {}}
+          formatBytes={formatBytes}
+          onPause={() => {}}
+          onResume={() => {}}
+          onRecheck={() => {}}
+          onReannounce={() => {}}
+          onDelete={() => {}}
+        />
       </div>
     );
   }

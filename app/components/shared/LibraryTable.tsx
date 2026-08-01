@@ -2,6 +2,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
 import { imdbIdFromTags, normalizeImdbId } from "@/lib/imdb";
 import { useImdbMetaMap } from "@/lib/imdb-meta";
+import {
+  isLibrarySimHash,
+  makeLibrarySimFiles,
+  makeLibrarySimTorrent,
+  toggleLibrarySimPaused,
+  type LibrarySimScenario,
+} from "@/lib/library-sim-torrent";
 import type { TorrentInfo, FileInfo } from "@/lib/types";
 import {
   LibraryChrome,
@@ -114,6 +121,11 @@ export default function LibraryTable({
     useState<LibraryPiecesVariant>("field");
   const [piecesPopupStyle, setPiecesPopupStyle] =
     useState<LibraryPiecesPopupStyle>("float");
+  const [simScenario, setSimScenario] = useState<LibrarySimScenario>("off");
+  const [simPausedOverride, setSimPausedOverride] = useState<boolean | null>(
+    null,
+  );
+  const [simProgress, setSimProgress] = useState(0.42);
   const isDev = import.meta.env.DEV;
 
   // Prefill / update from ?q= when navigating from toast ("View in Library").
@@ -121,30 +133,79 @@ export default function LibraryTable({
     setQuery(urlQuery);
   }, [urlQuery]);
 
+  // Reset local sim overrides when the scenario changes.
+  useEffect(() => {
+    setSimPausedOverride(null);
+    if (simScenario === "off") return;
+    const base = makeLibrarySimTorrent(simScenario);
+    setSimProgress(base.progress);
+  }, [simScenario]);
+
+  // Animate download progress so sparkles / width transitions can be tested.
+  useEffect(() => {
+    if (!isDev || simScenario === "off") return;
+    const paused =
+      simPausedOverride ??
+      (simScenario === "paused" || simScenario === "finished");
+    const { state, dlspeed } = toggleLibrarySimPaused(simScenario, paused);
+    const activeDl =
+      state.toLowerCase().includes("downloading") && dlspeed > 0;
+    if (!activeDl) return;
+    const id = window.setInterval(() => {
+      setSimProgress((p) => (p >= 0.96 ? 0.08 : Math.min(0.96, p + 0.012)));
+    }, 280);
+    return () => window.clearInterval(id);
+  }, [isDev, simScenario, simPausedOverride]);
+
+  const displayTorrents = useMemo(() => {
+    if (!isDev || simScenario === "off") return torrents;
+    const base = makeLibrarySimTorrent(simScenario);
+    const paused =
+      simPausedOverride ??
+      (simScenario === "paused" || simScenario === "finished");
+    const speeds = toggleLibrarySimPaused(simScenario, paused);
+    const progress =
+      simScenario === "downloading" || simScenario === "paused"
+        ? simProgress
+        : base.progress;
+    const sim = makeLibrarySimTorrent(simScenario, {
+      progress,
+      ...speeds,
+      eta:
+        simScenario === "downloading" && !paused
+          ? Math.max(
+              60,
+              Math.round(((1 - progress) * base.size) / Math.max(1, speeds.dlspeed)),
+            )
+          : base.eta,
+    });
+    return [sim, ...torrents.filter((t) => !isLibrarySimHash(t.hash))];
+  }, [isDev, torrents, simScenario, simPausedOverride, simProgress]);
+
   const counts = useMemo(() => {
     return {
-      all: torrents.length,
-      downloading: torrents.filter(isDownloading).length,
-      completed: torrents.filter(isCompleted).length,
-      active: torrents.filter(isActive).length,
-      paused: torrents.filter((t) => isPausedState(t.state)).length,
+      all: displayTorrents.length,
+      downloading: displayTorrents.filter(isDownloading).length,
+      completed: displayTorrents.filter(isCompleted).length,
+      active: displayTorrents.filter(isActive).length,
+      paused: displayTorrents.filter((t) => isPausedState(t.state)).length,
     };
-  }, [torrents]);
+  }, [displayTorrents]);
 
   // Load meta for all tagged torrents so title search can match show names.
   const allImdbIds = useMemo(() => {
     const ids = new Set<string>();
-    for (const t of torrents) {
+    for (const t of displayTorrents) {
       const id = imdbIdFromTags(t.tags);
       if (id) ids.add(id);
     }
     return Array.from(ids);
-  }, [torrents]);
+  }, [displayTorrents]);
 
   const imdbMap = useImdbMetaMap(allImdbIds);
 
   const filtered = useMemo(() => {
-    let list = torrents;
+    let list = displayTorrents;
     switch (filter) {
       case "downloading":
         list = list.filter(isDownloading);
@@ -178,15 +239,65 @@ export default function LibraryTable({
       });
     }
     return list;
-  }, [torrents, filter, query, urlQuery, urlImdb, imdbMap]);
+  }, [displayTorrents, filter, query, urlQuery, urlImdb, imdbMap]);
 
   const ensureFiles = useCallback(
     (hash: string) => {
+      if (isLibrarySimHash(hash)) return;
       if (hash in filesMap || requestedFiles.has(hash)) return;
       setRequestedFiles((prev) => new Set(prev).add(hash));
       onFetchFiles(hash);
     },
     [filesMap, requestedFiles, onFetchFiles],
+  );
+
+  const handlePause = useCallback(
+    (hash: string) => {
+      if (isLibrarySimHash(hash)) {
+        setSimPausedOverride(true);
+        return;
+      }
+      onPause(hash);
+    },
+    [onPause],
+  );
+
+  const handleResume = useCallback(
+    (hash: string) => {
+      if (isLibrarySimHash(hash)) {
+        setSimPausedOverride(false);
+        return;
+      }
+      onResume(hash);
+    },
+    [onResume],
+  );
+
+  const handleRecheck = useCallback(
+    (hash: string) => {
+      if (isLibrarySimHash(hash)) return;
+      onRecheck(hash);
+    },
+    [onRecheck],
+  );
+
+  const handleReannounce = useCallback(
+    (hash: string) => {
+      if (isLibrarySimHash(hash)) return;
+      onReannounce(hash);
+    },
+    [onReannounce],
+  );
+
+  const handleDelete = useCallback(
+    (hash: string, withFiles: boolean) => {
+      if (isLibrarySimHash(hash)) {
+        setSimScenario("off");
+        return;
+      }
+      onDelete(hash, withFiles);
+    },
+    [onDelete],
   );
 
   const density = isDev ? chromeDensity : "tight";
@@ -206,7 +317,7 @@ export default function LibraryTable({
 
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed px-4 py-12 text-center text-sm text-muted-foreground">
-          {torrents.length === 0
+          {displayTorrents.length === 0
             ? "No torrents in your library yet. Search and download something to get started."
             : "No torrents match this filter."}
         </div>
@@ -220,9 +331,12 @@ export default function LibraryTable({
           {filtered.map((t) => {
             const imdbId = imdbIdFromTags(t.tags);
             const meta = imdbId ? imdbMap[imdbId] : undefined;
-            const files = filesMap[t.hash];
+            const sim = isLibrarySimHash(t.hash);
+            const files = sim
+              ? makeLibrarySimFiles(t.progress)
+              : filesMap[t.hash];
             const isLoadingFiles =
-              requestedFiles.has(t.hash) && files === undefined;
+              !sim && requestedFiles.has(t.hash) && files === undefined;
 
             return (
               <LibraryTorrentCard
@@ -241,12 +355,15 @@ export default function LibraryTable({
                 isLoadingFiles={isLoadingFiles}
                 formatBytes={formatBytes}
                 onFetchFiles={() => ensureFiles(t.hash)}
-                onDownloadFile={(file) => onDownloadFile(t.hash, file)}
-                onPause={() => onPause(t.hash)}
-                onResume={() => onResume(t.hash)}
-                onRecheck={() => onRecheck(t.hash)}
-                onReannounce={() => onReannounce(t.hash)}
-                onDelete={(withFiles) => onDelete(t.hash, withFiles)}
+                onDownloadFile={(file) => {
+                  if (sim) return;
+                  onDownloadFile(t.hash, file);
+                }}
+                onPause={() => handlePause(t.hash)}
+                onResume={() => handleResume(t.hash)}
+                onRecheck={() => handleRecheck(t.hash)}
+                onReannounce={() => handleReannounce(t.hash)}
+                onDelete={(withFiles) => handleDelete(t.hash, withFiles)}
                 onMouseEnter={() => ensureFiles(t.hash)}
               />
             );
@@ -276,6 +393,8 @@ export default function LibraryTable({
           onPiecesVariantChange={setPiecesVariant}
           piecesPopupStyle={piecesPopupStyle}
           onPiecesPopupStyleChange={setPiecesPopupStyle}
+          simScenario={simScenario}
+          onSimScenarioChange={setSimScenario}
         />
       ) : null}
     </div>

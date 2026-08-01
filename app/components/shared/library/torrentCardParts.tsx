@@ -804,6 +804,24 @@ function ProgressSparkles({
       syncParticles(w, h, now);
       ctx.clearRect(0, 0, w, h);
 
+      // Clip to pill shape in-canvas — Safari often fails CSS overflow clip
+      // when a parent also uses backdrop-filter.
+      ctx.save();
+      ctx.beginPath();
+      const radius = h / 2;
+      if (typeof ctx.roundRect === "function") {
+        ctx.roundRect(0, 0, w, h, radius);
+      } else {
+        // Fallback for older WebKit without roundRect
+        ctx.moveTo(radius, 0);
+        ctx.arcTo(w, 0, w, h, radius);
+        ctx.arcTo(w, h, 0, h, radius);
+        ctx.arcTo(0, h, 0, 0, radius);
+        ctx.arcTo(0, 0, w, 0, radius);
+        ctx.closePath();
+      }
+      ctx.clip();
+
       const move = flowingRef.current && !reduceMotion;
       const deposit = tipX(w);
       const travel = Math.max(w - deposit, 1);
@@ -830,6 +848,7 @@ function ProgressSparkles({
         ctx.fill();
       }
 
+      ctx.restore();
       raf = requestAnimationFrame(draw);
     };
 
@@ -937,7 +956,7 @@ function MainActionButton({
       ) : null}
       <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 overflow-hidden"
+        className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
       >
         <ProgressSparkles
           count={particleCount}
