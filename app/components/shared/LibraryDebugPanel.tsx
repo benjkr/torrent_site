@@ -48,6 +48,8 @@ interface LibraryDebugPanelProps {
   onPiecesPopupStyleChange: (v: LibraryPiecesPopupStyle) => void;
   simScenario: LibrarySimScenario;
   onSimScenarioChange: (v: LibrarySimScenario) => void;
+  simProgressColor: string;
+  onSimProgressColorChange: (v: string) => void;
 }
 
 function FlagGroup<T extends string>({
@@ -114,6 +116,8 @@ export default function LibraryDebugPanel({
   onPiecesPopupStyleChange,
   simScenario,
   onSimScenarioChange,
+  simProgressColor,
+  onSimProgressColorChange,
 }: LibraryDebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -217,6 +221,37 @@ export default function LibraryDebugPanel({
                 },
               ]}
             />
+
+            {simScenario !== "off" ? (
+              <section className="flex items-center justify-between gap-3">
+                <h3 className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Sim progress color
+                </h3>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={simProgressColor}
+                    onChange={(e) => onSimProgressColorChange(e.target.value)}
+                    title="Progress fill + sparkle color for the sim card"
+                    className="size-7 cursor-pointer rounded border border-border/60 bg-transparent p-0.5"
+                  />
+                  <input
+                    type="text"
+                    value={simProgressColor}
+                    onChange={(e) => {
+                      let v = e.target.value.trim();
+                      if (!v.startsWith("#")) v = `#${v}`;
+                      if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                        onSimProgressColorChange(v.toLowerCase());
+                      }
+                    }}
+                    spellCheck={false}
+                    className="w-[5.5rem] rounded-md border border-border/60 bg-muted/30 px-1.5 py-0.5 font-mono text-[0.625rem] text-foreground"
+                    aria-label="Sim progress color hex"
+                  />
+                </div>
+              </section>
+            ) : null}
 
             <FlagGroup
               label="Filters chrome"

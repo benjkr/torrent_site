@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { imdbIdFromTags, isImdbAssumedFromTags } from "@/lib/imdb";
-import { softWashFill, useDominantColor } from "@/lib/dominant-color";
+import { softWashFill, useDominantColor, parseHexRgb } from "@/lib/dominant-color";
+import { progressParticleColor } from "@/lib/progress-particle-color";
 import type { TorrentInfo, FileInfo, ImdbMeta } from "@/lib/types";
 import PieceStatusBookmark, {
   type PiecePopupStyle,
@@ -467,6 +468,7 @@ export function ActionRow({
   progressChrome,
   completeAction,
   seedOffStyle,
+  progressColorOverride,
 }: {
   model: CardModel;
   className?: string;
@@ -475,6 +477,7 @@ export function ActionRow({
   progressChrome: "frosted" | "flat";
   completeAction: "logo" | "capsule";
   seedOffStyle: "red" | "muted";
+  progressColorOverride?: string | null;
 }) {
   const {
     paused,
@@ -542,6 +545,7 @@ export function ActionRow({
           dominantColor={dominantColor}
           progressColorMode={progressColorMode}
           progressChrome={progressChrome}
+          progressColorOverride={progressColorOverride}
         />
       )}
       <DropdownMenu>
@@ -716,20 +720,25 @@ function ProgressSparkles({
   count,
   flowing,
   progressPct,
+  colorHex,
 }: {
   count: number;
   flowing: boolean;
   /** 0–100 fill tip; 100 = complete/seeding (flow across pill, recycle near left). */
   progressPct: number;
+  /** Solid progress color (hex); sparkles use a darkened shade of this. */
+  colorHex: string | null;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const particlesRef = useRef<SparkleParticle[]>([]);
   const countRef = useRef(count);
   const flowingRef = useRef(flowing);
   const progressRef = useRef(progressPct);
+  const colorRef = useRef(colorHex);
   countRef.current = count;
   flowingRef.current = flowing;
   progressRef.current = progressPct;
+  colorRef.current = colorHex;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -749,6 +758,22 @@ function ProgressSparkles({
       return w * (pct / 100);
     };
 
+    const particleRgb = () => {
+      const hex = colorRef.current;
+      if (!hex) return null;
+      const css = progressParticleColor(hex);
+      if (!css) return parseHexRgb(hex);
+      const m = css.match(/^rgb\((\d+),(\d+),(\d+)\)$/);
+      if (m) {
+        return {
+          r: Number(m[1]),
+          g: Number(m[2]),
+          b: Number(m[3]),
+        };
+      }
+      return parseHexRgb(hex);
+    };
+
     const spawn = (
       w: number,
       h: number,
@@ -764,7 +789,7 @@ function ProgressSparkles({
         y: Math.random() * Math.max(h, 1),
         r: 0.55 + Math.random() * 1.05,
         speed: 28 + Math.random() * 55,
-        alpha: 0.12 + Math.random() * 0.18,
+        alpha: 0.55 + Math.random() * 0.35,
         bornAt,
       };
     };
@@ -850,6 +875,7 @@ function ProgressSparkles({
       const move = flowingRef.current && !reduceMotion;
       const deposit = tipX(w);
       const travel = Math.max(w - deposit, 1);
+      const rgb = particleRgb();
 
       for (const p of particlesRef.current) {
         if (now < p.bornAt) continue;
@@ -867,8 +893,13 @@ function ProgressSparkles({
         }
 
         const glow = Math.max(0, Math.min(1, (p.x - deposit) / travel));
+        const a = p.alpha * (0.55 + 0.45 * glow);
+        if (rgb) {
+          ctx.fillStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${a})`;
+        } else {
+          ctx.fillStyle = `rgba(255,255,255,${a * 0.45})`;
+        }
         ctx.beginPath();
-        ctx.fillStyle = `rgba(255,255,255,${p.alpha * (0.2 + 0.45 * glow)})`;
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       }
@@ -893,7 +924,7 @@ function ProgressSparkles({
       ref={canvasRef}
       aria-hidden
       className={cn(
-        "pointer-events-none absolute inset-0 mix-blend-soft-light",
+        "pointer-events-none absolute inset-0",
         count <= 0 && "invisible",
       )}
     />
@@ -911,6 +942,7 @@ function MainActionButton({
   dominantColor,
   progressColorMode,
   progressChrome,
+  progressColorOverride,
 }: {
   action: MainAction;
   progress: number;
@@ -921,6 +953,8 @@ function MainActionButton({
   dominantColor: string | null;
   progressColorMode: "cover" | "original";
   progressChrome: "frosted" | "flat";
+  /** DEV sim: force this solid hex for fill + sparkles. */
+  progressColorOverride?: string | null;
 }) {
   const { label, Icon, onClick, tone } = action;
   const pct = Math.min(100, Math.max(0, progress));
@@ -931,8 +965,27 @@ function MainActionButton({
   const useCoverColor = progressColorMode === "cover";
   const frosted = progressChrome === "frosted";
 
-  const coverFill =
-    useCoverColor && dominantColor ? softWashFill(dominantColor) : null;
+  const toneSolid =
+    tone === "resume"
+      ? "#10b981"
+      : tone === "pause"
+        ? "#0ea5e9"
+        : "#0ea5e9";
+  const completedSolid = "#34d399";
+
+  const solidProgress =
+    progressColorOverride ||
+    (useCoverColor && dominantColor
+      ? dominantColor
+      : complete
+        ? completedSolid
+        : toneSolid);
+
+  const coverFill = progressColorOverride
+    ? softWashFill(progressColorOverride)
+    : useCoverColor && dominantColor
+      ? softWashFill(dominantColor)
+      : null;
   const completedFill = "color-mix(in oklab, #34d399 45%, transparent)";
 
   return (
@@ -950,7 +1003,7 @@ function MainActionButton({
               complete && "text-emerald-100",
             )
           : complete
-            ? useCoverColor
+            ? useCoverColor || progressColorOverride
               ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
               : tone === "seed"
                 ? "bg-sky-500/20 text-sky-200 hover:bg-sky-500/30"
@@ -972,11 +1025,21 @@ function MainActionButton({
             ...(coverFill ? { background: coverFill } : null),
           }}
         />
-      ) : frosted || useCoverColor ? (
+      ) : frosted || useCoverColor || progressColorOverride ? (
         <span
           aria-hidden
           className={cn("absolute inset-0", !frosted && "bg-emerald-400/35")}
-          style={frosted ? { background: completedFill } : undefined}
+          style={
+            frosted
+              ? {
+                  background: progressColorOverride
+                    ? softWashFill(progressColorOverride)
+                    : completedFill,
+                }
+              : progressColorOverride
+                ? { background: softWashFill(progressColorOverride) }
+                : undefined
+          }
         />
       ) : null}
       <span
@@ -987,6 +1050,7 @@ function MainActionButton({
           count={particleCount}
           flowing={sparkleFlowing}
           progressPct={complete ? 100 : pct}
+          colorHex={solidProgress}
         />
       </span>
       <span className="relative z-10 flex w-full items-center px-3">
@@ -1026,6 +1090,10 @@ export interface LibraryTorrentCardProps {
    * `original` = fixed sky/emerald fills — only via Library Debug flag.
    */
   progressColorMode?: "cover" | "original";
+  /**
+   * DEV sim: force progress fill + sparkle hue to this hex (live color picker).
+   */
+  progressColorOverride?: string | null;
   /**
    * Action-row chrome (progress capsule + ⋯ button + menu).
    * `frosted` = G1 glass (default). `flat` = previous style — Library Debug only.

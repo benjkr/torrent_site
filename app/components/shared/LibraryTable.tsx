@@ -126,6 +126,7 @@ export default function LibraryTable({
     null,
   );
   const [simProgress, setSimProgress] = useState(0.42);
+  const [simProgressColor, setSimProgressColor] = useState("#6ee7b7");
   const isDev = import.meta.env.DEV;
 
   // Prefill / update from ?q= when navigating from toast ("View in Library").
@@ -349,6 +350,9 @@ export default function LibraryTable({
                 filesViewerStyle={isDev ? filesViewerStyle : "dense-glass"}
                 piecesVariant={isDev ? piecesVariant : "field"}
                 piecesPopupStyle={isDev ? piecesPopupStyle : "float"}
+                progressColorOverride={
+                  isDev && sim ? simProgressColor : undefined
+                }
                 torrent={t}
                 meta={meta}
                 files={files}
@@ -395,6 +399,8 @@ export default function LibraryTable({
           onPiecesPopupStyleChange={setPiecesPopupStyle}
           simScenario={simScenario}
           onSimScenarioChange={setSimScenario}
+          simProgressColor={simProgressColor}
+          onSimProgressColorChange={setSimProgressColor}
         />
       ) : null}
     </div>
