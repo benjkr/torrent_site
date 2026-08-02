@@ -29,7 +29,7 @@ import {
   PaginationNext,
 } from "@/components/ui/pagination";
 import { notifyDownloadStarted } from "@/lib/download-notify";
-import { episodeCode, seasonCode } from "@/lib/imdb";
+import { episodeCode, normalizeImdbId, seasonCode } from "@/lib/imdb";
 import { useQbStatus } from "@/lib/qb-status";
 
 const PPER = 12;
@@ -311,7 +311,11 @@ export default function SearchPage() {
   const handleDownload = (hash: string, name: string, imdb?: string) => {
     if (!qbOnline) return;
     const params = new URLSearchParams({ hash, name });
-    if (imdb) params.set("imdb", imdb);
+    const fromTorrent = normalizeImdbId(imdb);
+    const fromSelection = normalizeImdbId(imdbSelection?.id);
+    const resolved = fromTorrent ?? fromSelection;
+    if (resolved) params.set("imdb", resolved);
+    if (!fromTorrent && fromSelection) params.set("imdbAssumed", "1");
     pendingDownloadRef.current = name;
     downloadFetcher.load(`/api/download?${params}`);
   };
