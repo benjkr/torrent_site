@@ -115,7 +115,7 @@ export function makeLibrarySimTorrent(
     added_on: SIM_ADDED_ON,
     category: "debug",
     // Real IMDb id so cover / dominant-color progress can load in DEV.
-    tags: "imdb:tt0133093",
+    tags: "tt0133093",
     num_seeds: 0,
     num_leechs: 0,
     progress: 0,

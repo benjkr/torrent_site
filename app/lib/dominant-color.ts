@@ -129,6 +129,71 @@ export function softWashFill(dominant: string): string {
   return `color-mix(in oklab, ${dominant} 42%, transparent)`;
 }
 
+export function parseHexRgb(
+  hex: string,
+): { r: number; g: number; b: number } | null {
+  const raw = hex.trim().replace(/^#/, "");
+  if (!/^[0-9a-fA-F]{6}$/.test(raw)) return null;
+  const n = parseInt(raw, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+/**
+ * Same hue as `hex`, reduced lightness (multiply HSL L).
+ * Used for progress sparkles so they match the bar color but read darker.
+ */
+export function darkenHex(hex: string, lightnessFactor = 0.58): string | null {
+  const rgb = parseHexRgb(hex);
+  if (!rgb) return null;
+  let { r, g, b } = rgb;
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const l = (max + min) / 2;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    switch (max) {
+      case r:
+        h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+        break;
+      case g:
+        h = ((b - r) / d + 2) / 6;
+        break;
+      default:
+        h = ((r - g) / d + 4) / 6;
+        break;
+    }
+  }
+  const nl = Math.max(0, Math.min(1, l * lightnessFactor));
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let T = t;
+    if (T < 0) T += 1;
+    if (T > 1) T -= 1;
+    if (T < 1 / 6) return p + (q - p) * 6 * T;
+    if (T < 1 / 2) return q;
+    if (T < 2 / 3) return p + (q - p) * (2 / 3 - T) * 6;
+    return p;
+  };
+  let nr: number;
+  let ng: number;
+  let nb: number;
+  if (s === 0) {
+    nr = ng = nb = nl;
+  } else {
+    const q = nl < 0.5 ? nl * (1 + s) : nl + s - nl * s;
+    const p = 2 * nl - q;
+    nr = hue2rgb(p, q, h + 1 / 3);
+    ng = hue2rgb(p, q, h);
+    nb = hue2rgb(p, q, h - 1 / 3);
+  }
+  return `rgb(${Math.round(nr * 255)},${Math.round(ng * 255)},${Math.round(nb * 255)})`;
+}
+
 export function useDominantColor(imageUrl: string | null | undefined): string | null {
   const [color, setColor] = useState<string | null>(() =>
     imageUrl && cache.has(cacheKey(imageUrl))

@@ -24,6 +24,9 @@ export function LibraryTorrentCard(props: LibraryTorrentCardProps) {
   const completeAction = props.completeAction ?? "logo";
   const seedOffStyle = props.seedOffStyle ?? "red";
   const filesViewerStyle = props.filesViewerStyle ?? "dense-glass";
+  const progressColorOverride = import.meta.env.DEV
+    ? (props.progressColorOverride ?? null)
+    : null;
   const piecesVariant: PieceStatusVariant = import.meta.env.DEV
     ? (props.piecesVariant ?? "field")
     : "field";
@@ -81,6 +84,7 @@ export function LibraryTorrentCard(props: LibraryTorrentCardProps) {
           progressChrome={progressChrome}
           completeAction={completeAction}
           seedOffStyle={seedOffStyle}
+          progressColorOverride={progressColorOverride}
         />
       </div>
     </div>
