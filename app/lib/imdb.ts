@@ -62,17 +62,32 @@ export function normalizeImdbId(value: string | null | undefined): string | null
   return IMDB_ID_RE.test(id) ? id.toLowerCase() : null;
 }
 
+/** Marker tag when IMDb id was assumed from the user's search, not the torrent. */
+export const IMDB_ASSUMED_TAG = "imdb-assumed";
+
+function tagParts(tags: string | string[] | null | undefined): string[] {
+  if (!tags) return [];
+  return Array.isArray(tags)
+    ? tags.map((t) => t.trim()).filter(Boolean)
+    : tags.split(",").map((t) => t.trim()).filter(Boolean);
+}
+
 /** Parse qB tags (comma-separated) and return first IMDB id. */
 export function imdbIdFromTags(tags: string | string[] | null | undefined): string | null {
-  if (!tags) return null;
-  const parts = Array.isArray(tags)
-    ? tags
-    : tags.split(",").map((t) => t.trim());
-  for (const part of parts) {
+  for (const part of tagParts(tags)) {
     const id = normalizeImdbId(part);
     if (id) return id;
   }
   return null;
+}
+
+/** Whether tags include the assumed-from-search marker. */
+export function isImdbAssumedFromTags(
+  tags: string | string[] | null | undefined,
+): boolean {
+  return tagParts(tags).some(
+    (part) => part.toLowerCase() === IMDB_ASSUMED_TAG,
+  );
 }
 
 export function imdbThumbnail(url: string, width = 280): string {

@@ -16,6 +16,7 @@ import {
   Trash2Icon,
   FolderXIcon,
   SproutIcon,
+  TriangleAlertIcon,
   UsersIcon,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
@@ -33,7 +34,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { imdbIdFromTags } from "@/lib/imdb";
+import { imdbIdFromTags, isImdbAssumedFromTags } from "@/lib/imdb";
 import { softWashFill, useDominantColor } from "@/lib/dominant-color";
 import type { TorrentInfo, FileInfo, ImdbMeta } from "@/lib/types";
 import PieceStatusBookmark, {
@@ -101,6 +102,7 @@ export type CardModel = {
   complete: boolean;
   status: { text: string; className: string };
   imdbId: string | null;
+  imdbAssumed: boolean;
   meta: ImdbMeta | null | undefined;
   eta: string | null;
   added: string | null;
@@ -124,6 +126,7 @@ export function buildModel(props: LibraryTorrentCardProps): CardModel {
   const complete = isCompleted(t);
   const status = statusLabel(t);
   const imdbId = imdbIdFromTags(t.tags);
+  const imdbAssumed = isImdbAssumedFromTags(t.tags);
   const eta =
     !complete && t.eta > 0 && t.eta < 8640000
       ? formatDuration(intervalToDuration({ start: 0, end: t.eta * 1000 }))
@@ -140,6 +143,7 @@ export function buildModel(props: LibraryTorrentCardProps): CardModel {
     complete,
     status,
     imdbId,
+    imdbAssumed,
     meta,
     eta,
     added,
@@ -246,7 +250,7 @@ export function StatusChips({
   model: CardModel;
   glass?: boolean;
 }) {
-  const { status, imdbId } = model;
+  const { status, imdbId, imdbAssumed } = model;
   return (
     <div className="mb-1.5 flex flex-wrap items-center gap-1">
       <span
@@ -266,22 +270,43 @@ export function StatusChips({
       >
         {status.text}
       </span>
-      {imdbId && (
+      {imdbId ? (
         <a
           href={`https://www.imdb.com/title/${imdbId}/`}
           target="_blank"
           rel="noreferrer"
-          className={cn(
-            "inline-flex h-4 items-center px-1.5 text-[0.5625rem] font-medium transition-colors",
-            glass
-              ? "rounded-full bg-imdb/20 font-extrabold tracking-tight text-imdb-foreground hover:bg-imdb/30"
-              : "rounded-sm bg-yellow-500/15 text-yellow-700 hover:bg-yellow-500/25",
-          )}
+          title={
+            imdbAssumed
+              ? "This torrent didn’t say which show it is — we used your search."
+              : undefined
+          }
+          className="inline-flex h-3.5 items-stretch"
           onClick={(e) => e.stopPropagation()}
         >
-          IMDb
+          <img
+            src="/imdb-logo.svg"
+            alt="IMDb"
+            className="relative z-[1] h-full w-auto select-none"
+            draggable={false}
+          />
+          {imdbAssumed ? (
+            <span
+              className="-ml-[3px] inline-flex items-center justify-center gap-0 rounded-r-[0.28rem] bg-[#f6c700] pr-1 text-[#141414]"
+              aria-label="Assumed"
+            >
+              <span
+                className="mx-0.5 h-[55%] w-px bg-[#141414]/25"
+                aria-hidden
+              />
+              <TriangleAlertIcon
+                className="size-2.5 shrink-0"
+                strokeWidth={2.5}
+                aria-hidden
+              />
+            </span>
+          ) : null}
         </a>
-      )}
+      ) : null}
     </div>
   );
 }
