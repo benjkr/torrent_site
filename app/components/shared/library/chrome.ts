@@ -29,11 +29,6 @@ export const LIBRARY_FILTER_ICONS = {
   paused: PauseIcon,
 } as const;
 
-export type LibraryChromeView = "compact" | "legacy";
-
-/** Desktop header spacing — tight is production default. */
-export type LibraryChromeDensity = "tight" | "roomy";
-
 export type LibraryChromeProps = {
   filter: LibraryFilterId;
   onFilterChange: (id: LibraryFilterId) => void;
