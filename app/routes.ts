@@ -6,6 +6,7 @@ export default [
   route("/library", "./routes/library.tsx"),
   route("/settings", "./routes/settings.tsx"),
   route("/torrents", "./routes/torrents.tsx"), // redirects to /library
+  route("/debug/tetris-pieces", "./routes/debug-tetris-pieces.tsx"),
   // Chrome DevTools Automatic Workspace Folders probe (avoids noisy 404 logs)
   route(
     "/.well-known/appspecific/com.chrome.devtools.json",
