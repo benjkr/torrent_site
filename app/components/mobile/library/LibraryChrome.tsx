@@ -8,7 +8,7 @@ import {
   libraryChromeGlass,
   type LibraryChromeProps,
 } from "@/components/shared/library/chrome";
-import { TitleRowAside } from "@/components/shared/library/LibraryChromeLegacy";
+import { TitleRowAside } from "@/components/shared/library/TitleRowAside";
 import { cn } from "@/lib/utils";
 
 function MobileStatusMenu({

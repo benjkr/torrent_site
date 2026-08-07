@@ -24,7 +24,6 @@ import { useEffect, useRef } from "react";
 import {
   normalizeTorrentFiles,
   TorrentFilesHoverCard,
-  type TorrentFilesViewerStyle,
 } from "@/components/shared/TorrentFilesHoverCard";
 import {
   DropdownMenu,
@@ -35,13 +34,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { imdbIdFromTags, isImdbAssumedFromTags } from "@/lib/imdb";
-import { softWashFill, useDominantColor, parseHexRgb } from "@/lib/dominant-color";
+import { softWashFill, parseHexRgb } from "@/lib/dominant-color";
 import { progressParticleColor } from "@/lib/progress-particle-color";
 import type { TorrentInfo, FileInfo, ImdbMeta } from "@/lib/types";
-import PieceStatusBookmark, {
-  type PiecePopupStyle,
-  type PieceStatusVariant,
-} from "@/components/shared/PieceStatusBookmark";
+import PieceStatusBookmark from "@/components/shared/PieceStatusBookmark";
 
 function isPausedState(state: string) {
   const s = String(state).toLowerCase();
@@ -207,16 +203,10 @@ export function Cover({
   );
 }
 
-export function TitleBlock({
-  model,
-  padForBookmark,
-}: {
-  model: CardModel;
-  padForBookmark?: boolean;
-}) {
+export function TitleBlock({ model }: { model: CardModel }) {
   const { displayTitle, meta, torrent: t } = model;
   return (
-    <div className={cn("mb-1.5 min-w-0", padForBookmark && "pr-9")}>
+    <div className="mb-1.5 min-w-0">
       <div
         className="font-semibold text-sm leading-tight truncate"
         title={displayTitle}
@@ -244,29 +234,14 @@ export function TitleBlock({
   );
 }
 
-export function StatusChips({
-  model,
-  glass,
-}: {
-  model: CardModel;
-  glass?: boolean;
-}) {
+export function StatusChips({ model }: { model: CardModel }) {
   const { status, imdbId, imdbAssumed } = model;
   return (
     <div className="mb-1.5 flex flex-wrap items-center gap-1">
       <span
         className={cn(
-          "inline-flex h-4 items-center px-1.5 text-[0.5625rem] font-medium",
-          glass ? "rounded-full" : "rounded-sm",
-          glass
-            ? status.text === "Downloading"
-              ? "bg-sky-500/20 text-sky-300"
-              : status.text === "Seeding" || status.text === "Completed"
-                ? "bg-emerald-500/20 text-emerald-300"
-                : status.text === "Paused" || status.text === "Finished"
-                  ? "bg-white/10 text-white/50"
-                  : status.className
-            : status.className,
+          "inline-flex h-4 items-center rounded-sm px-1.5 text-[0.5625rem] font-medium",
+          status.className,
         )}
       >
         {status.text}
@@ -375,17 +350,7 @@ export function PeersField({
   );
 }
 
-export function StatsGrid({
-  model,
-  filesViewerStyle,
-  piecesVariant,
-  piecesPopupStyle,
-}: {
-  model: CardModel;
-  filesViewerStyle: TorrentFilesViewerStyle;
-  piecesVariant: PieceStatusVariant;
-  piecesPopupStyle: PiecePopupStyle;
-}) {
+export function StatsGrid({ model }: { model: CardModel }) {
   const {
     torrent: t,
     added,
@@ -397,8 +362,6 @@ export function StatsGrid({
     onDownloadFile,
     complete,
   } = model;
-
-  const fieldPieces = piecesVariant === "field";
 
   return (
     <div className="mb-2.5 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
@@ -418,24 +381,13 @@ export function StatsGrid({
         formatBytes={formatBytes}
         onDownloadFile={onDownloadFile}
         triggerClassName="min-w-0"
-        viewerStyle={filesViewerStyle}
       />
 
       <div className="truncate tabular-nums">{formatBytes(t.size || 0)}</div>
 
-      {fieldPieces ? (
-        <PieceStatusBookmark
-          hash={t.hash}
-          variant="field"
-          popupStyle={piecesPopupStyle}
-        />
-      ) : complete ? (
-        <div aria-hidden className="min-h-4" />
-      ) : (
-        <PeersField torrent={t} />
-      )}
+      <PieceStatusBookmark hash={t.hash} />
 
-      {fieldPieces && !complete ? (
+      {!complete ? (
         <>
           <PeersField torrent={t} />
           <div aria-hidden className="min-h-4" />
@@ -464,19 +416,11 @@ export function ActionRow({
   model,
   className,
   dominantColor,
-  progressColorMode,
-  progressChrome,
-  completeAction,
-  seedOffStyle,
   progressColorOverride,
 }: {
   model: CardModel;
   className?: string;
   dominantColor: string | null;
-  progressColorMode: "cover" | "original";
-  progressChrome: "frosted" | "flat";
-  completeAction: "logo" | "capsule";
-  seedOffStyle: "red" | "muted";
   progressColorOverride?: string | null;
 }) {
   const {
@@ -515,22 +459,17 @@ export function ActionRow({
         tone: "pause" as const,
       };
 
-  const frosted = progressChrome === "frosted";
-  const useSeedLogo = complete && completeAction === "logo";
-  const menuItemClass = frosted
-    ? "rounded-lg focus:bg-white/12 focus:text-foreground data-[variant=destructive]:focus:bg-red-500/15"
-    : undefined;
-  const menuSepClass = frosted ? "bg-white/15" : undefined;
+  const menuItemClass =
+    "rounded-lg focus:bg-white/12 focus:text-foreground data-[variant=destructive]:focus:bg-red-500/15";
+  const menuSepClass = "bg-white/15";
 
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      {useSeedLogo ? (
+      {complete ? (
         <>
           <div className="min-w-0 flex-1" />
           <SeedLogoButton
             seeding={!paused}
-            frosted={frosted}
-            seedOffStyle={seedOffStyle}
             onToggle={paused ? onResume : onPause}
           />
         </>
@@ -543,8 +482,6 @@ export function ActionRow({
           dlspeed={torrent.dlspeed || 0}
           upspeed={torrent.upspeed || 0}
           dominantColor={dominantColor}
-          progressColorMode={progressColorMode}
-          progressChrome={progressChrome}
           progressColorOverride={progressColorOverride}
         />
       )}
@@ -553,14 +490,10 @@ export function ActionRow({
           aria-label="Torrent actions"
           className={cn(
             "inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-sm font-medium transition-all outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-            frosted
-              ? cn(
-                  "border border-white/20 bg-white/10 text-foreground/85",
-                  "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
-                  "backdrop-blur-xl backdrop-saturate-150",
-                  "hover:bg-white/14 hover:text-foreground",
-                )
-              : "border border-white/10 bg-white/4 text-white/60 hover:bg-white/8 hover:text-foreground",
+            "border border-white/20 bg-white/10 text-foreground/85",
+            "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
+            "backdrop-blur-xl backdrop-saturate-150",
+            "hover:bg-white/14 hover:text-foreground",
           )}
         >
           <MoreHorizontalIcon className="size-3.5" />
@@ -569,12 +502,9 @@ export function ActionRow({
           align="end"
           className={cn(
             "w-auto min-w-52",
-            frosted &&
-              cn(
-                "rounded-xl border border-white/20 bg-white/10 p-1.5 text-foreground",
-                "shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.22)]",
-                "ring-0 backdrop-blur-2xl backdrop-saturate-150",
-              ),
+            "rounded-xl border border-white/20 bg-white/10 p-1.5 text-foreground",
+            "shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.22)]",
+            "ring-0 backdrop-blur-2xl backdrop-saturate-150",
           )}
         >
           {paused ? (
@@ -629,20 +559,14 @@ export function ActionRow({
   );
 }
 
-/** L1 — frosted circle Seed logo (replaces progress when complete) */
+/** Frosted circle Seed logo (replaces progress when complete) */
 function SeedLogoButton({
   seeding,
-  frosted,
-  seedOffStyle,
   onToggle,
 }: {
   seeding: boolean;
-  frosted: boolean;
-  seedOffStyle: "red" | "muted";
   onToggle: () => void;
 }) {
-  const redOff = seedOffStyle === "red";
-
   return (
     <button
       type="button"
@@ -652,25 +576,15 @@ function SeedLogoButton({
       title={seeding ? "Seeding" : "Seed off"}
       className={cn(
         "relative inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-        frosted
-          ? cn(
-              "border border-white/20 bg-white/10",
-              "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
-              "backdrop-blur-xl backdrop-saturate-150",
-              seeding
-                ? "text-emerald-100 hover:bg-white/14"
-                : redOff
-                  ? "text-red-400 hover:bg-white/14"
-                  : "text-foreground/70 hover:bg-white/14 hover:text-foreground",
-            )
-          : seeding
-            ? "border border-emerald-500/30 bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-            : redOff
-              ? "border border-red-500/25 bg-red-500/15 text-red-400 hover:bg-red-500/25"
-              : "border border-white/10 bg-white/4 text-white/60 hover:bg-white/8 hover:text-foreground",
+        "border border-white/20 bg-white/10",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
+        "backdrop-blur-xl backdrop-saturate-150",
+        seeding
+          ? "text-emerald-100 hover:bg-white/14"
+          : "text-red-400 hover:bg-white/14",
       )}
     >
-      {frosted && seeding ? (
+      {seeding ? (
         <span
           aria-hidden
           className="absolute inset-0"
@@ -678,8 +592,7 @@ function SeedLogoButton({
             background: "color-mix(in oklab, #34d399 45%, transparent)",
           }}
         />
-      ) : null}
-      {frosted && !seeding && redOff ? (
+      ) : (
         <span
           aria-hidden
           className="absolute inset-0"
@@ -687,7 +600,7 @@ function SeedLogoButton({
             background: "color-mix(in oklab, #ef4444 18%, transparent)",
           }}
         />
-      ) : null}
+      )}
       <SproutIcon className="relative z-10 size-3.5" />
     </button>
   );
@@ -940,8 +853,6 @@ function MainActionButton({
   dlspeed,
   upspeed,
   dominantColor,
-  progressColorMode,
-  progressChrome,
   progressColorOverride,
 }: {
   action: MainAction;
@@ -951,8 +862,6 @@ function MainActionButton({
   dlspeed: number;
   upspeed: number;
   dominantColor: string | null;
-  progressColorMode: "cover" | "original";
-  progressChrome: "frosted" | "flat";
   /** DEV sim: force this solid hex for fill + sparkles. */
   progressColorOverride?: string | null;
 }) {
@@ -962,8 +871,6 @@ function MainActionButton({
   const speed = complete ? upspeed : dlspeed;
   const particleCount = Math.floor(Math.max(0, speed) / (10 * 1024));
   const sparkleFlowing = !paused && particleCount > 0;
-  const useCoverColor = progressColorMode === "cover";
-  const frosted = progressChrome === "frosted";
 
   const toneSolid =
     tone === "resume"
@@ -975,7 +882,7 @@ function MainActionButton({
 
   const solidProgress =
     progressColorOverride ||
-    (useCoverColor && dominantColor
+    (dominantColor
       ? dominantColor
       : complete
         ? completedSolid
@@ -983,7 +890,7 @@ function MainActionButton({
 
   const coverFill = progressColorOverride
     ? softWashFill(progressColorOverride)
-    : useCoverColor && dominantColor
+    : dominantColor
       ? softWashFill(dominantColor)
       : null;
   const completedFill = "color-mix(in oklab, #34d399 45%, transparent)";
@@ -995,20 +902,10 @@ function MainActionButton({
       aria-label={showProgress ? `${label}, ${pct}%` : label}
       className={cn(
         "relative flex h-8 flex-1 cursor-pointer items-center overflow-hidden rounded-full transition-colors",
-        frosted
-          ? cn(
-              "border border-white/20 bg-white/10 text-foreground/90",
-              "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
-              "backdrop-blur-xl backdrop-saturate-150",
-              complete && "text-emerald-100",
-            )
-          : complete
-            ? useCoverColor || progressColorOverride
-              ? "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-              : tone === "seed"
-                ? "bg-sky-500/20 text-sky-200 hover:bg-sky-500/30"
-                : "bg-emerald-500/20 text-emerald-200 hover:bg-emerald-500/30"
-            : "bg-white/6 text-foreground/85 hover:bg-white/9",
+        "border border-white/20 bg-white/10 text-foreground/90",
+        "shadow-[inset_0_1px_0_rgba(255,255,255,0.28),0_4px_16px_rgba(0,0,0,0.25)]",
+        "backdrop-blur-xl backdrop-saturate-150",
+        complete && "text-emerald-100",
       )}
     >
       {showProgress ? (
@@ -1025,23 +922,17 @@ function MainActionButton({
             ...(coverFill ? { background: coverFill } : null),
           }}
         />
-      ) : frosted || useCoverColor || progressColorOverride ? (
+      ) : (
         <span
           aria-hidden
-          className={cn("absolute inset-0", !frosted && "bg-emerald-400/35")}
-          style={
-            frosted
-              ? {
-                  background: progressColorOverride
-                    ? softWashFill(progressColorOverride)
-                    : completedFill,
-                }
-              : progressColorOverride
-                ? { background: softWashFill(progressColorOverride) }
-                : undefined
-          }
+          className="absolute inset-0"
+          style={{
+            background: progressColorOverride
+              ? softWashFill(progressColorOverride)
+              : completedFill,
+          }}
         />
-      ) : null}
+      )}
       <span
         aria-hidden
         className="pointer-events-none absolute inset-0 overflow-hidden rounded-full"
@@ -1083,54 +974,8 @@ export interface LibraryTorrentCardProps {
   onReannounce: () => void;
   onDelete: (withFiles: boolean) => void;
   onMouseEnter: () => void;
-  /** `glass` = Soft Island frosted card — only via Library Debug flag */
-  variant?: "glass" | "legacy";
-  /**
-   * Progress fill mode. `cover` = P1 soft wash from poster dominant color.
-   * `original` = fixed sky/emerald fills — only via Library Debug flag.
-   */
-  progressColorMode?: "cover" | "original";
   /**
    * DEV sim: force progress fill + sparkle hue to this hex (live color picker).
    */
   progressColorOverride?: string | null;
-  /**
-   * Action-row chrome (progress capsule + ⋯ button + menu).
-   * `frosted` = G1 glass (default). `flat` = previous style — Library Debug only.
-   */
-  progressChrome?: "frosted" | "flat";
-  /**
-   * Completed-torrent primary control.
-   * `logo` = L1 frosted Seed circle (default).
-   * `capsule` = previous full-width Seed/Pause capsule — Library Debug only.
-   */
-  completeAction?: "logo" | "capsule";
-  /**
-   * Seed-off logo treatment when completeAction is `logo`.
-   * `red` = R3 red icon + soft tint (default).
-   * `muted` = previous muted off state — Library Debug only.
-   */
-  seedOffStyle?: "red" | "muted";
-  /**
-   * File hover viewer. `dense-glass` = A2 (default).
-   * `legacy` = previous flat list — Library Debug only.
-   */
-  filesViewerStyle?: TorrentFilesViewerStyle;
-  /**
-   * Piece status presentation. `field` = stats cell under Files (default).
-   * `bookmark` = previous ribbon — Library Debug only.
-   */
-  piecesVariant?: PieceStatusVariant;
-  /**
-   * Pieces hover popup. `float` = Ring·Line glass (default).
-   * `legacy` = previous framed popover — Library Debug only.
-   */
-  piecesPopupStyle?: PiecePopupStyle;
 }
-
-export const glassShell = cn(
-  "border border-white/20",
-  "bg-linear-to-b from-white/14 to-white/6",
-  "shadow-[0_12px_40px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.22)]",
-  "backdrop-blur-2xl backdrop-saturate-150",
-);

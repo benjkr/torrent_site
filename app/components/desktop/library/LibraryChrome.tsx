@@ -6,10 +6,9 @@ import {
   LIBRARY_FILTERS,
   libraryChromeDenseGlass,
   libraryChromeGlass,
-  type LibraryChromeDensity,
   type LibraryChromeProps,
 } from "@/components/shared/library/chrome";
-import { TitleRowAside } from "@/components/shared/library/LibraryChromeLegacy";
+import { TitleRowAside } from "@/components/shared/library/TitleRowAside";
 import { cn } from "@/lib/utils";
 
 function StatusFilterMenu({
@@ -116,25 +115,17 @@ function StatusFilterMenu({
   );
 }
 
-/** Desktop: compact pill search + mobile-style status filter menu (A3). */
+/** Desktop: compact pill search + mobile-style status filter menu. */
 export function LibraryChrome({
   filter,
   onFilterChange,
   query,
   onQueryChange,
   counts,
-  density = "tight",
-}: LibraryChromeProps & { density?: LibraryChromeDensity }) {
-  const tight = density === "tight";
-
+}: LibraryChromeProps) {
   return (
     <>
-      <div
-        className={cn(
-          "flex flex-col @sm:flex-row @sm:items-center @sm:justify-between",
-          tight ? "gap-1" : "gap-2",
-        )}
-      >
+      <div className="flex flex-col gap-1 @sm:flex-row @sm:items-center @sm:justify-between">
         <h1 className="text-base font-semibold tracking-tight">
           Library
           <span className="ml-2 text-xs font-normal text-muted-foreground">
@@ -143,12 +134,7 @@ export function LibraryChrome({
         </h1>
         <TitleRowAside />
       </div>
-      <div
-        className={cn(
-          "sticky top-16 z-40 -mx-4 px-4",
-          tight ? "py-1" : "py-2",
-        )}
-      >
+      <div className="sticky top-16 z-40 -mx-4 px-4 py-1">
         <div
           className={cn(
             "flex items-center gap-0.5 rounded-full py-0.5 pr-0.5 pl-1",

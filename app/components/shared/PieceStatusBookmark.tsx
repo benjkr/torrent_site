@@ -33,19 +33,9 @@ interface Spark {
   born: number;
 }
 
-/** `field` = production default (stats cell). `bookmark` = legacy ribbon — DEV only. */
-export type PieceStatusVariant = "field" | "bookmark";
-
-/** `float` = dense-glass Ring·Line (default). `legacy` = previous popover — DEV only. */
-export type PiecePopupStyle = "float" | "legacy";
-
 interface PieceStatusBookmarkProps {
   hash: string;
   className?: string;
-  /** Production always uses `field`. `bookmark` only via Library Debug. */
-  variant?: PieceStatusVariant;
-  /** Production always uses `float`. `legacy` only via Library Debug. */
-  popupStyle?: PiecePopupStyle;
 }
 
 /** Same dense-glass shell as torrent file viewer / FreeSpace popovers. */
@@ -55,11 +45,6 @@ const denseGlassPopup = cn(
   "shadow-[0_12px_40px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.28)]",
   "backdrop-blur-2xl backdrop-saturate-150",
   "ring-0",
-);
-
-const legacyPopup = cn(
-  "w-auto max-w-[min(100vw-2rem,340px)] overflow-hidden rounded-xl border-0 p-0",
-  "shadow-2xl ring-1 ring-black/8",
 );
 
 function pieceColor(state: number): string {
@@ -93,18 +78,7 @@ function stickyPieces(prev: number[] | null, raw: number[]): number[] {
 export default function PieceStatusBookmark({
   hash,
   className,
-  variant = "field",
-  popupStyle = "float",
 }: PieceStatusBookmarkProps) {
-  const effectiveVariant: PieceStatusVariant = import.meta.env.DEV
-    ? variant
-    : "field";
-  const isField = effectiveVariant === "field";
-  const effectivePopup: PiecePopupStyle = import.meta.env.DEV
-    ? popupStyle
-    : "float";
-  const useFloat = effectivePopup === "float";
-
   const [data, setData] = useState<PiecePayload | null>(null);
   const [displayPieces, setDisplayPieces] = useState<number[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -196,9 +170,9 @@ export default function PieceStatusBookmark({
 
     const pieces = displayPieces;
     const total = pieces.length;
-    const maxW = useFloat ? 300 : 292;
-    const maxH = useFloat ? 188 : 168;
-    const pad = useFloat ? 2 : 8;
+    const maxW = 300;
+    const maxH = 188;
+    const pad = 2;
     const gap = total > 2500 ? 0 : 1;
     let cell = total > 4000 ? 3 : total > 1500 ? 4 : total > 600 ? 5 : 6;
     let cols = Math.max(1, Math.floor((maxW - pad * 2) / (cell + gap)));
@@ -224,12 +198,6 @@ export default function PieceStatusBookmark({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
 
-    if (!useFloat) {
-      ctx.fillStyle = "rgba(15, 23, 42, 0.04)";
-      roundRect(ctx, 0, 0, w, h, 8);
-      ctx.fill();
-    }
-
     for (let i = 0; i < total; i++) {
       const col = i % cols;
       const row = Math.floor(i / cols);
@@ -250,7 +218,7 @@ export default function PieceStatusBookmark({
         ctx.fillRect(x, y, cell, cell);
       }
     }
-  }, [displayPieces, open, useFloat]);
+  }, [displayPieces, open]);
 
   useEffect(() => {
     if (sparks.length === 0) return;
@@ -261,18 +229,9 @@ export default function PieceStatusBookmark({
     return () => clearInterval(id);
   }, [sparks.length]);
 
-  const pct =
-    data && data.total > 0
-      ? Math.round((data.complete / data.total) * 100)
-      : null;
-
   const fieldMosaic = displayPieces
     ? samplePreview(displayPieces, 8)
     : [2, 2, 1, 0, 2, 0, 1, 0];
-
-  const ribbonMosaic = displayPieces
-    ? samplePreview(displayPieces, 9)
-    : [0, 0, 2, 0, 1, 0, 2, 0, 0];
 
   const ariaLabel =
     data != null
@@ -287,83 +246,43 @@ export default function PieceStatusBookmark({
         onMouseEnter={warm}
         onFocus={warm}
         className={cn(
-          isField
-            ? "inline-flex min-w-0 cursor-default items-center gap-1.5 text-xs outline-none transition-colors hover:text-foreground select-none"
-            : "piece-ribbon group outline-none cursor-default select-none",
+          "inline-flex min-w-0 cursor-default items-center gap-1.5 text-xs outline-none transition-colors hover:text-foreground select-none",
           className,
         )}
         aria-label={ariaLabel}
       >
-        {isField ? (
-          <>
+        <span
+          className="grid w-5 shrink-0 grid-cols-4 gap-px rounded-[0.125rem] p-px ring-1 ring-black/10 dark:ring-white/10"
+          aria-hidden
+        >
+          {fieldMosaic.map((s, i) => (
             <span
-              className="grid w-5 shrink-0 grid-cols-4 gap-px rounded-[0.125rem] p-px ring-1 ring-black/10 dark:ring-white/10"
-              aria-hidden
-            >
-              {fieldMosaic.map((s, i) => (
-                <span
-                  key={i}
-                  className="aspect-square rounded-[0.03125rem]"
-                  style={{
-                    backgroundColor:
-                      s === NOT_DOWNLOADED ? "#e8eaed" : pieceColor(s),
-                  }}
-                />
-              ))}
-            </span>
-            <span className="truncate">pieces</span>
-            <ChevronDownIcon className="size-2.5 shrink-0 opacity-60" />
-          </>
-        ) : (
-          <>
-            <span className="piece-ribbon-body">
-              <span className="piece-ribbon-mosaic" aria-hidden>
-                {ribbonMosaic.map((s, i) => (
-                  <span
-                    key={i}
-                    className="piece-ribbon-cell"
-                    style={{ backgroundColor: pieceColor(s) }}
-                    data-state={s}
-                  />
-                ))}
-              </span>
-              <span className="piece-ribbon-label">
-                {pct != null ? (
-                  <span className="tabular-nums">{pct}%</span>
-                ) : (
-                  <span className="opacity-60">···</span>
-                )}
-              </span>
-            </span>
-            <span className="piece-ribbon-fold" aria-hidden />
-          </>
-        )}
+              key={i}
+              className="aspect-square rounded-[0.03125rem]"
+              style={{
+                backgroundColor:
+                  s === NOT_DOWNLOADED ? "#e8eaed" : pieceColor(s),
+              }}
+            />
+          ))}
+        </span>
+        <span className="truncate">pieces</span>
+        <ChevronDownIcon className="size-2.5 shrink-0 opacity-60" />
       </HoverCardTrigger>
 
       <HoverCardContent
         side="bottom"
-        align={isField ? "start" : "end"}
+        align="start"
         sideOffset={8}
-        className={useFloat ? denseGlassPopup : legacyPopup}
+        className={denseGlassPopup}
       >
-        {useFloat ? (
-          <FloatPiecesBody
-            data={data}
-            loading={loading}
-            error={error}
-            canvasRef={canvasRef}
-            sparks={sparks}
-          />
-        ) : (
-          <LegacyPiecesBody
-            data={data}
-            loading={loading}
-            error={error}
-            pct={pct}
-            canvasRef={canvasRef}
-            sparks={sparks}
-          />
-        )}
+        <FloatPiecesBody
+          data={data}
+          loading={loading}
+          error={error}
+          canvasRef={canvasRef}
+          sparks={sparks}
+        />
       </HoverCardContent>
     </HoverCard>
   );
@@ -441,151 +360,6 @@ function FloatPiecesBody({
         </div>
       ) : null}
     </div>
-  );
-}
-
-/** Previous framed popover — DEV rollback only. */
-function LegacyPiecesBody({
-  data,
-  loading,
-  error,
-  pct,
-  canvasRef,
-  sparks,
-}: {
-  data: PiecePayload | null;
-  loading: boolean;
-  error: string | null;
-  pct: number | null;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
-  sparks: Spark[];
-}) {
-  return (
-    <div className="bg-popover text-popover-foreground">
-      <div className="flex items-start justify-between gap-4 px-3.5 pt-3 pb-2">
-        <div className="min-w-0">
-          <div className="text-[0.8125rem] font-semibold tracking-tight">
-            Pieces
-          </div>
-          <div className="mt-0.5 text-[0.6875rem] text-muted-foreground">
-            {data
-              ? `${data.complete.toLocaleString()} of ${data.total.toLocaleString()} complete`
-              : loading
-                ? "Loading map…"
-                : "—"}
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
-          <div className="flex items-center gap-2 text-[0.625rem] text-muted-foreground">
-            <Legend swatch={COLOR_EMPTY} border label="Empty" />
-            <Legend swatch={COLOR_DOWNLOADING} label="Active" />
-            <Legend swatch={COLOR_COMPLETE} label="Done" />
-          </div>
-        </div>
-      </div>
-
-      {data && data.total > 0 && (
-        <div className="mx-3.5 mb-2 h-1 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-emerald-500 transition-all duration-500"
-            style={{ width: `${pct ?? 0}%` }}
-          />
-        </div>
-      )}
-
-      <div className="relative flex justify-center px-3 pb-3">
-        {error ? (
-          <p className="w-full rounded-lg bg-destructive/5 px-3 py-8 text-center text-xs text-destructive">
-            {error}
-          </p>
-        ) : !data ? (
-          <div className="flex h-36 w-72 items-center justify-center rounded-lg bg-muted/40">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-muted-foreground/25 border-t-foreground/60" />
-          </div>
-        ) : data.total === 0 ? (
-          <p className="w-full rounded-lg bg-muted/40 px-3 py-8 text-center text-xs text-muted-foreground">
-            No piece data yet
-          </p>
-        ) : (
-          <div className="relative inline-block overflow-hidden rounded-lg shadow-inner ring-1 ring-black/5">
-            <canvas ref={canvasRef} className="block" />
-            {sparks.map((sp) => (
-              <span
-                key={sp.id}
-                className="piece-spark pointer-events-none absolute"
-                style={{ left: sp.x, top: sp.y }}
-              >
-                <span className="piece-spark-burst" />
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {data && data.total > 0 && (
-        <div className="grid grid-cols-3 border-t bg-muted/30 text-center text-[0.6875rem]">
-          <Stat
-            value={data.complete}
-            label="done"
-            className="text-emerald-600"
-          />
-          <Stat
-            value={data.downloading}
-            label="active"
-            className="text-blue-500"
-          />
-          <Stat
-            value={data.missing}
-            label="empty"
-            className="text-foreground/60"
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Stat({
-  value,
-  label,
-  className,
-}: {
-  value: number;
-  label: string;
-  className?: string;
-}) {
-  return (
-    <div className="px-2 py-2.5">
-      <div className={cn("font-semibold tabular-nums leading-none", className)}>
-        {value.toLocaleString()}
-      </div>
-      <div className="mt-0.5 text-[0.625rem] text-muted-foreground">{label}</div>
-    </div>
-  );
-}
-
-function Legend({
-  swatch,
-  label,
-  border,
-}: {
-  swatch: string;
-  label: string;
-  border?: boolean;
-}) {
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span
-        className="inline-block size-2 rounded-[0.125rem]"
-        style={{
-          backgroundColor: swatch,
-          boxShadow: border
-            ? `inset 0 0 0 0.5px ${COLOR_EMPTY_STROKE}`
-            : undefined,
-        }}
-      />
-      {label}
-    </span>
   );
 }
 

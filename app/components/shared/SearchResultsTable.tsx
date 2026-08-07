@@ -64,7 +64,6 @@ function FilesMeta({
       files={normalizeTorrentFiles(cached?.files ?? [])}
       emptyLabel="0 files"
       triggerClassName={triggerClassName}
-      viewerStyle="dense-glass"
     />
   );
 }

@@ -12,22 +12,10 @@ import {
 import type { TorrentInfo, FileInfo } from "@/lib/types";
 import {
   LibraryChrome,
-  type LibraryChromeDensity,
-  type LibraryChromeView,
   type LibraryFilterId,
 } from "@/components/shared/LibraryChrome";
 import { LibraryTorrentCard } from "@/components/LibraryTorrentCard";
-import LibraryDebugPanel, {
-  type LibraryCardView,
-  type LibraryCompleteAction,
-  type LibraryPiecesPopupStyle,
-  type LibraryPiecesVariant,
-  type LibraryProgressChrome,
-  type LibraryProgressColorMode,
-  type LibrarySeedOffStyle,
-} from "@/components/shared/LibraryDebugPanel";
-import type { TorrentFilesViewerStyle } from "@/components/shared/TorrentFilesHoverCard";
-import { cn } from "@/lib/utils";
+import LibraryDebugPanel from "@/components/shared/LibraryDebugPanel";
 
 interface LibraryTableProps {
   torrents: TorrentInfo[];
@@ -103,24 +91,6 @@ export default function LibraryTable({
   const [requestedFiles, setRequestedFiles] = useState<Set<string>>(
     () => new Set(),
   );
-  const [cardView, setCardView] = useState<LibraryCardView>("legacy");
-  const [chromeView, setChromeView] = useState<LibraryChromeView>("compact");
-  const [chromeDensity, setChromeDensity] =
-    useState<LibraryChromeDensity>("tight");
-  const [progressColorMode, setProgressColorMode] =
-    useState<LibraryProgressColorMode>("cover");
-  const [progressChrome, setProgressChrome] =
-    useState<LibraryProgressChrome>("frosted");
-  const [completeAction, setCompleteAction] =
-    useState<LibraryCompleteAction>("logo");
-  const [seedOffStyle, setSeedOffStyle] =
-    useState<LibrarySeedOffStyle>("red");
-  const [filesViewerStyle, setFilesViewerStyle] =
-    useState<TorrentFilesViewerStyle>("dense-glass");
-  const [piecesVariant, setPiecesVariant] =
-    useState<LibraryPiecesVariant>("field");
-  const [piecesPopupStyle, setPiecesPopupStyle] =
-    useState<LibraryPiecesPopupStyle>("float");
   const [simScenario, setSimScenario] = useState<LibrarySimScenario>("off");
   const [simPausedOverride, setSimPausedOverride] = useState<boolean | null>(
     null,
@@ -301,14 +271,9 @@ export default function LibraryTable({
     [onDelete],
   );
 
-  const density = isDev ? chromeDensity : "tight";
-  const tight = density === "tight";
-
   return (
-    <div className={tight ? "mt-0 space-y-2" : "mt-1 space-y-4"}>
+    <div className="mt-0 space-y-2">
       <LibraryChrome
-        view={isDev ? chromeView : "compact"}
-        density={density}
         filter={filter}
         onFilterChange={setFilter}
         query={query}
@@ -323,12 +288,7 @@ export default function LibraryTable({
             : "No torrents match this filter."}
         </div>
       ) : (
-        <div
-          className={cn(
-            "grid grid-cols-1 gap-3 @md:grid-cols-2",
-            tight ? "pt-0" : "pt-1",
-          )}
-        >
+        <div className="grid grid-cols-1 gap-3 pt-0 @md:grid-cols-2">
           {filtered.map((t) => {
             const imdbId = imdbIdFromTags(t.tags);
             const meta = imdbId ? imdbMap[imdbId] : undefined;
@@ -342,14 +302,6 @@ export default function LibraryTable({
             return (
               <LibraryTorrentCard
                 key={t.hash}
-                variant={isDev ? cardView : "legacy"}
-                progressColorMode={isDev ? progressColorMode : "cover"}
-                progressChrome={isDev ? progressChrome : "frosted"}
-                completeAction={isDev ? completeAction : "logo"}
-                seedOffStyle={isDev ? seedOffStyle : "red"}
-                filesViewerStyle={isDev ? filesViewerStyle : "dense-glass"}
-                piecesVariant={isDev ? piecesVariant : "field"}
-                piecesPopupStyle={isDev ? piecesPopupStyle : "float"}
                 progressColorOverride={
                   isDev && sim ? simProgressColor : undefined
                 }
@@ -377,26 +329,6 @@ export default function LibraryTable({
 
       {isDev ? (
         <LibraryDebugPanel
-          chromeView={chromeView}
-          onChromeViewChange={setChromeView}
-          chromeDensity={chromeDensity}
-          onChromeDensityChange={setChromeDensity}
-          cardView={cardView}
-          onCardViewChange={setCardView}
-          progressColorMode={progressColorMode}
-          onProgressColorModeChange={setProgressColorMode}
-          progressChrome={progressChrome}
-          onProgressChromeChange={setProgressChrome}
-          completeAction={completeAction}
-          onCompleteActionChange={setCompleteAction}
-          seedOffStyle={seedOffStyle}
-          onSeedOffStyleChange={setSeedOffStyle}
-          filesViewerStyle={filesViewerStyle}
-          onFilesViewerStyleChange={setFilesViewerStyle}
-          piecesVariant={piecesVariant}
-          onPiecesVariantChange={setPiecesVariant}
-          piecesPopupStyle={piecesPopupStyle}
-          onPiecesPopupStyleChange={setPiecesPopupStyle}
           simScenario={simScenario}
           onSimScenarioChange={setSimScenario}
           simProgressColor={simProgressColor}
