@@ -19,7 +19,7 @@ import {
   TriangleAlertIcon,
   UsersIcon,
 } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 
 import {
   normalizeTorrentFiles,
@@ -417,11 +417,14 @@ export function ActionRow({
   className,
   dominantColor,
   progressColorOverride,
+  completeLeading,
 }: {
   model: CardModel;
   className?: string;
   dominantColor: string | null;
   progressColorOverride?: string | null;
+  /** Replaces the empty spacer when complete + logo (e.g. torrent size). */
+  completeLeading?: ReactNode;
 }) {
   const {
     paused,
@@ -467,7 +470,7 @@ export function ActionRow({
     <div className={cn("flex items-center gap-1", className)}>
       {complete ? (
         <>
-          <div className="min-w-0 flex-1" />
+          {completeLeading ?? <div className="min-w-0 flex-1" />}
           <SeedLogoButton
             seeding={!paused}
             onToggle={paused ? onResume : onPause}
@@ -624,7 +627,7 @@ type SparkleParticle = {
 };
 
 /**
- * 10 KB/s → 1 particle.
+ * 100 KB/s → 1 particle.
  * Full-button canvas: spawn at the capsule’s literal right edge, drift left,
  * deposit at the progress tip (or near-left when complete/seeding).
  * New particles (count up / recycle) get a small random stagger so flow stays smooth.
@@ -869,7 +872,7 @@ function MainActionButton({
   const pct = Math.min(100, Math.max(0, progress));
   const showProgress = !complete;
   const speed = complete ? upspeed : dlspeed;
-  const particleCount = Math.floor(Math.max(0, speed) / (10 * 1024));
+  const particleCount = Math.floor(Math.max(0, speed) / (100 * 1024));
   const sparkleFlowing = !paused && particleCount > 0;
 
   const toneSolid =

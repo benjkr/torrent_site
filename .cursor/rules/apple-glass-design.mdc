@@ -7,9 +7,15 @@ alwaysApply: false
 
 When asked for **new designs** (variants to pick from):
 
-1. Add a temporary route/page that shows all options in context (mock the real chrome).
-2. **Register it** in `app/lib/debug-pages.ts` (`DEBUG_PAGES`: `{ path, label }`) so it appears in the DEV-only debug pages list (bottom-right, above the Debug button).
-3. After a winner is chosen: implement it on the real page(s), then **delete** the temp route/page, unregister it from `routes.ts`, and **remove** it from `DEBUG_PAGES`.
+1. Add **one** file: `app/dev-pages/<unique-slug>.tsx` (unique kebab-case slug so parallel agents never collide).
+2. Export `devPage = { label: "…" }` and a default component. It auto-appears in the DEV bottom-right list at `/dev/<slug>` — do **not** edit `routes.ts` or any registry.
+3. Put **all new exploration UI in that single file**. Reuse existing app components when available. Do not split variants into separate component files yet.
+4. After a winner is chosen: implement it on the real page(s), **then** split into proper component files as needed, and **delete** `app/dev-pages/<unique-slug>.tsx`.
+
+When asked to **change** a design on an existing dev page, or make **new variants from a specific design on that page**:
+
+- **Replace that same `app/dev-pages/<slug>.tsx`** with the new exploration. Do **not** create another page.
+- Discard the previous contents of that page unless the user asks to keep the old designs.
 
 Do not leave comparison pages around after a choice.
 

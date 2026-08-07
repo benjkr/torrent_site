@@ -4,12 +4,15 @@ import { BugIcon, XIcon } from "lucide-react";
 
 import { useForceMobile } from "@/components/shared/ForceMobileToggle";
 import { Button } from "@/components/ui/button";
+import type { LibraryCardLayout } from "@/components/LibraryTorrentCard";
 import type { LibrarySimScenario } from "@/lib/library-sim-torrent";
 import { cn } from "@/lib/utils";
 
-export type { LibrarySimScenario };
+export type { LibrarySimScenario, LibraryCardLayout };
 
 interface LibraryDebugPanelProps {
+  cardLayout: LibraryCardLayout;
+  onCardLayoutChange: (v: LibraryCardLayout) => void;
   simScenario: LibrarySimScenario;
   onSimScenarioChange: (v: LibrarySimScenario) => void;
   simProgressColor: string;
@@ -58,6 +61,8 @@ function FlagGroup<T extends string>({
 }
 
 export default function LibraryDebugPanel({
+  cardLayout,
+  onCardLayoutChange,
   simScenario,
   onSimScenarioChange,
   simProgressColor,
@@ -113,7 +118,7 @@ export default function LibraryDebugPanel({
 
           <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-3">
             <p className="text-[0.625rem] text-muted-foreground">
-              Dev-only simulator torrent card.
+              Dev-only simulator torrent card and layout flag.
             </p>
 
             <FlagGroup
@@ -194,6 +199,24 @@ export default function LibraryDebugPanel({
                 </div>
               </section>
             ) : null}
+
+            <FlagGroup
+              label="Card layout"
+              value={cardLayout}
+              onChange={onCardLayoutChange}
+              options={[
+                {
+                  id: "shelf",
+                  label: "Shelf",
+                  hint: "Cover-first Fused Pill cards with Ink underlip drawer.",
+                },
+                {
+                  id: "legacy",
+                  label: "Original",
+                  hint: "Previous horizontal strip cards.",
+                },
+              ]}
+            />
           </div>
         </div>
       ) : null}

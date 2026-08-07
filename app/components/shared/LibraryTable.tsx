@@ -14,8 +14,12 @@ import {
   LibraryChrome,
   type LibraryFilterId,
 } from "@/components/shared/LibraryChrome";
-import { LibraryTorrentCard } from "@/components/LibraryTorrentCard";
+import {
+  LibraryTorrentCard,
+  type LibraryCardLayout,
+} from "@/components/LibraryTorrentCard";
 import LibraryDebugPanel from "@/components/shared/LibraryDebugPanel";
+import { cn } from "@/lib/utils";
 
 interface LibraryTableProps {
   torrents: TorrentInfo[];
@@ -91,6 +95,7 @@ export default function LibraryTable({
   const [requestedFiles, setRequestedFiles] = useState<Set<string>>(
     () => new Set(),
   );
+  const [cardLayout, setCardLayout] = useState<LibraryCardLayout>("shelf");
   const [simScenario, setSimScenario] = useState<LibrarySimScenario>("off");
   const [simPausedOverride, setSimPausedOverride] = useState<boolean | null>(
     null,
@@ -271,6 +276,8 @@ export default function LibraryTable({
     [onDelete],
   );
 
+  const shelfLayout = !isDev || cardLayout === "shelf";
+
   return (
     <div className="mt-0 space-y-2">
       <LibraryChrome
@@ -288,7 +295,14 @@ export default function LibraryTable({
             : "No torrents match this filter."}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-3 pt-0 @md:grid-cols-2">
+        <div
+          className={cn(
+            "grid gap-3 pt-0",
+            shelfLayout
+              ? "grid-cols-[repeat(auto-fill,minmax(11.5rem,1fr))]"
+              : "grid-cols-1 @md:grid-cols-2",
+          )}
+        >
           {filtered.map((t) => {
             const imdbId = imdbIdFromTags(t.tags);
             const meta = imdbId ? imdbMap[imdbId] : undefined;
@@ -302,6 +316,7 @@ export default function LibraryTable({
             return (
               <LibraryTorrentCard
                 key={t.hash}
+                layout={isDev ? cardLayout : "shelf"}
                 progressColorOverride={
                   isDev && sim ? simProgressColor : undefined
                 }
@@ -329,6 +344,8 @@ export default function LibraryTable({
 
       {isDev ? (
         <LibraryDebugPanel
+          cardLayout={cardLayout}
+          onCardLayoutChange={setCardLayout}
           simScenario={simScenario}
           onSimScenarioChange={setSimScenario}
           simProgressColor={simProgressColor}
