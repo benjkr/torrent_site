@@ -2,7 +2,7 @@ import { NavLink } from "react-router";
 import { CloudOffIcon } from "lucide-react";
 
 import { useForceMobile } from "@/components/shared/ForceMobileToggle";
-import { DEBUG_PAGES } from "@/lib/debug-pages";
+import { getDevPages } from "@/lib/dev-pages";
 import { useQbDebug } from "@/lib/qb-debug";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,7 @@ export function DebugPagesNav() {
 
   const { forceOffline, setForceOffline } = useQbDebug();
   const forceMobile = useForceMobile();
+  const devPages = getDevPages();
 
   return (
     <div
@@ -20,12 +21,13 @@ export function DebugPagesNav() {
         // Sit above the page Debug button; keep outside phone when forced.
         forceMobile ? "bottom-14" : "bottom-32 md:bottom-14",
       )}
-    >      {DEBUG_PAGES.length > 0 ? (
+    >
+      {devPages.length > 0 ? (
         <nav
-          aria-label="Debug design pages"
+          aria-label="Dev design pages"
           className="flex flex-col-reverse items-end gap-1"
         >
-          {DEBUG_PAGES.map((page) => (
+          {devPages.map((page) => (
             <NavLink
               key={page.path}
               to={page.path}

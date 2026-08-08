@@ -6,6 +6,8 @@ export default [
   route("/library", "./routes/library.tsx"),
   route("/settings", "./routes/settings.tsx"),
   route("/torrents", "./routes/torrents.tsx"), // redirects to /library
+  // Host for app/dev-pages/*.tsx — glob-loaded; add/delete files only (404 outside DEV).
+  route("/dev/:slug", "./routes/dev.$slug.tsx", { id: "dev-pages" }),
   // Chrome DevTools Automatic Workspace Folders probe (avoids noisy 404 logs)
   route(
     "/.well-known/appspecific/com.chrome.devtools.json",

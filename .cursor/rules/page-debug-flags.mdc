@@ -1,5 +1,5 @@
 ---
-description: Per-page Debug button; preserve prior UI behind dev feature flags
+description: Per-page Debug button; preserve prior UI behind dev feature flags; auto-loaded app/dev-pages
 alwaysApply: true
 ---
 
@@ -12,11 +12,16 @@ alwaysApply: true
 - Keep flags compact (small segmented toggles). Put hints in `title` tooltips, not large cards.
 - Colocate page flags in that page’s debug panel (or a `*DebugPanel` component used only there). Do not dump unrelated flags into other pages.
 
-## Debug design pages (DEV only)
+## Dev design pages (`app/dev-pages`)
 
-- Temp design / comparison routes are listed in `app/lib/debug-pages.ts` and rendered by `DebugPagesNav` (root): **bottom-right, stacked above the Debug button**, **only when `import.meta.env.DEV`**.
-- When creating a new temp page: add `{ path, label }` to `DEBUG_PAGES`.
-- When deleting a temp page after a winner: remove it from `DEBUG_PAGES` as well as the route.
+Temp design / comparison pages are **auto-discovered** — no edits to `routes.ts` or a shared registry.
+
+- **Add:** create `app/dev-pages/<unique-slug>.tsx` (kebab-case slug; pick a name that will not collide with other agents’ pages).
+- **Export:** `export const devPage = { label: "Short nav label" }` plus a default page component. URL becomes `/dev/<slug>`. Nav links appear bottom-right (above the Debug button), DEV only.
+- **Iterate in place:** when asked to change a design on an existing dev page, or make new variants from a specific design on that page, **replace that same file’s contents**. Do **not** create another dev page. Drop the previous exploration UI unless the user asks to keep it.
+- **Delete:** remove that file only. Do not touch `routes.ts`, `DebugPagesNav`, or other pages.
+- **Authoring:** keep **all newly generated UI in that one file** (variants, mocks, helpers). Do **not** split into `app/components/...` during exploration. **Reuse existing app components** when they already fit.
+- **Ship a winner:** implement on the real page(s), extract into proper component files as needed, then **delete** the `app/dev-pages/<slug>.tsx` file.
 
 ## When changing UI
 
@@ -36,5 +41,8 @@ If the user says **not** to save / keep / preserve the current UI (e.g. “don�
 
 ## Do not
 
-- Leave temp design-comparison routes around after a winner is chosen (see apple-glass design exploration rule).
+- Leave temp design-comparison pages around after a winner is chosen (see apple-glass design exploration rule).
 - Expose these UI rollback flags outside DEV.
+- Edit a shared registry / `routes.ts` to add or remove a dev page.
+- Split exploration UI into extra component files before a winner is chosen.
+- Spawn a new `app/dev-pages/*.tsx` when iterating on an existing one (replace in place instead).

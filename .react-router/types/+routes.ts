@@ -26,6 +26,11 @@ type Pages = {
   "/torrents": {
     params: {};
   };
+  "/dev/:slug": {
+    params: {
+      "slug": string;
+    };
+  };
   "/.well-known/appspecific/com.chrome.devtools.json": {
     params: {};
   };
@@ -88,7 +93,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/search" | "/library" | "/settings" | "/torrents" | "/.well-known/appspecific/com.chrome.devtools.json" | "/api/search" | "/api/search_files" | "/api/imdb_search" | "/api/imdb_meta" | "/api/image_proxy" | "/api/tv_show" | "/api/download" | "/api/torrents" | "/api/torrent/pause" | "/api/torrent/resume" | "/api/torrent/recheck" | "/api/torrent/reannounce" | "/api/torrent_files" | "/api/torrent_pieces" | "/api/download_file" | "/api/settings" | "/api/qb_status" | "/api/app_version";
+    page: "/" | "/search" | "/library" | "/settings" | "/torrents" | "/dev/:slug" | "/.well-known/appspecific/com.chrome.devtools.json" | "/api/search" | "/api/search_files" | "/api/imdb_search" | "/api/imdb_meta" | "/api/image_proxy" | "/api/tv_show" | "/api/download" | "/api/torrents" | "/api/torrent/pause" | "/api/torrent/resume" | "/api/torrent/recheck" | "/api/torrent/reannounce" | "/api/torrent_files" | "/api/torrent_pieces" | "/api/download_file" | "/api/settings" | "/api/qb_status" | "/api/app_version";
   };
   "./routes/_index.tsx": {
     id: "routes/_index";
@@ -109,6 +114,10 @@ type RouteFiles = {
   "./routes/torrents.tsx": {
     id: "routes/torrents";
     page: "/torrents";
+  };
+  "./routes/dev.$slug.tsx": {
+    id: "dev-pages";
+    page: "/dev/:slug";
   };
   "./routes/well-known.chrome-devtools.ts": {
     id: "routes/well-known.chrome-devtools";
@@ -195,6 +204,7 @@ type RouteModules = {
   "routes/library": typeof import("./app/./routes/library.tsx");
   "routes/settings": typeof import("./app/./routes/settings.tsx");
   "routes/torrents": typeof import("./app/./routes/torrents.tsx");
+  "dev-pages": typeof import("./app/./routes/dev.$slug.tsx");
   "routes/well-known.chrome-devtools": typeof import("./app/./routes/well-known.chrome-devtools.ts");
   "routes/api.search": typeof import("./app/./routes/api.search.ts");
   "routes/api.search_files": typeof import("./app/./routes/api.search_files.ts");
