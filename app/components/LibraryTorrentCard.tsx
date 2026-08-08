@@ -8,7 +8,7 @@ import { useMdUp } from "@/components/shared/ViewportGate";
 
 export type { LibraryTorrentCardProps } from "@/components/shared/library/torrentCardParts";
 
-/** Desktop card layout. Production always uses shelf; legacy only via DEV Debug. */
+/** Card layout. Production always uses shelf; legacy only via DEV Debug. */
 export type LibraryCardLayout = "shelf" | "legacy";
 
 export function LibraryTorrentCard(
@@ -21,9 +21,9 @@ export function LibraryTorrentCard(
   const layout: LibraryCardLayout =
     import.meta.env.DEV && props.layout === "legacy" ? "legacy" : "shelf";
 
-  if (!ready || mdUp) {
-    if (layout === "shelf") return <LibraryShelfCard {...props} />;
-    return <DesktopLibraryTorrentCard {...props} />;
-  }
+  if (layout === "shelf") return <LibraryShelfCard {...props} />;
+
+  // Legacy strip cards: desktop vs mobile variants.
+  if (!ready || mdUp) return <DesktopLibraryTorrentCard {...props} />;
   return <MobileLibraryTorrentCard {...props} />;
 }

@@ -2,6 +2,9 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Glob-loaded only — ensure Tailwind scans these for utility generation. */
+@source "./dev-pages/**/*.{tsx,ts}";
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
