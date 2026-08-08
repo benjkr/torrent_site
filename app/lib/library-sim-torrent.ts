@@ -143,7 +143,7 @@ export function makeLibrarySimFiles(progress: number): FileInfo[] {
       availability: p >= 1 ? 1 : 0.85,
     },
     {
-      name: "Simulator.Torrent.2024.1080p.BluRay.x264-DEBUG/sample.mkv",
+      name: "Simulator.Torrent.2024.1080p.BluRay.x264-DEBUG/Extras/sample.mkv",
       size: 8_000_000,
       progress: Math.min(1, p * 1.2),
       priority: 1,
@@ -151,8 +151,16 @@ export function makeLibrarySimFiles(progress: number): FileInfo[] {
       availability: 1,
     },
     {
+      name: "Simulator.Torrent.2024.1080p.BluRay.x264-DEBUG/Subs/en.srt",
+      size: 48_000,
+      progress: 1,
+      priority: 0,
+      is_seed: true,
+      availability: 1,
+    },
+    {
       name: "Simulator.Torrent.2024.1080p.BluRay.x264-DEBUG/readme.txt",
-      size: 4_000_000,
+      size: 4_000,
       progress: 1,
       priority: 0,
       is_seed: true,

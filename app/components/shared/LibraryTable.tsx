@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { useSearchParams } from "react-router";
 import { imdbIdFromTags, normalizeImdbId } from "@/lib/imdb";
 import { useImdbMetaMap } from "@/lib/imdb-meta";
@@ -10,6 +11,7 @@ import {
   type LibrarySimScenario,
 } from "@/lib/library-sim-torrent";
 import type { TorrentInfo, FileInfo } from "@/lib/types";
+import { startViewTransition } from "@/lib/view-transition";
 import {
   LibraryChrome,
   type LibraryFilterId,
@@ -18,7 +20,12 @@ import {
   LibraryTorrentCard,
   type LibraryCardLayout,
 } from "@/components/LibraryTorrentCard";
-import LibraryDebugPanel from "@/components/shared/LibraryDebugPanel";
+import { LibraryPosterDetail } from "@/components/desktop/library/LibraryPosterDetail";
+import LibraryDebugPanel, {
+  type LibraryCardGap,
+  type PosterDetailMode,
+} from "@/components/shared/LibraryDebugPanel";
+import { useMdUp } from "@/components/shared/ViewportGate";
 import { cn } from "@/lib/utils";
 
 interface LibraryTableProps {
@@ -96,13 +103,24 @@ export default function LibraryTable({
     () => new Set(),
   );
   const [cardLayout, setCardLayout] = useState<LibraryCardLayout>("shelf");
+  const [cardGap, setCardGap] = useState<LibraryCardGap>("roomier");
+  const [posterDetailMode, setPosterDetailMode] =
+    useState<PosterDetailMode>("twin");
+  const [posterWidthRem, setPosterWidthRem] = useState(11.5);
   const [simScenario, setSimScenario] = useState<LibrarySimScenario>("off");
   const [simPausedOverride, setSimPausedOverride] = useState<boolean | null>(
     null,
   );
   const [simProgress, setSimProgress] = useState(0.42);
   const [simProgressColor, setSimProgressColor] = useState("#6ee7b7");
+  const [openHash, setOpenHash] = useState<string | null>(null);
+  const [shelfVtHash, setShelfVtHash] = useState<string | null>(null);
+  const [mounted, setMounted] = useState(false);
   const isDev = import.meta.env.DEV;
+  const mdUp = useMdUp();
+  const vtUid = useId().replace(/[^a-zA-Z0-9]/g, "");
+
+  useEffect(() => setMounted(true), []);
 
   // Prefill / update from ?q= when navigating from toast ("View in Library").
   useEffect(() => {
@@ -277,9 +295,99 @@ export default function LibraryTable({
   );
 
   const shelfLayout = !isDev || cardLayout === "shelf";
+  const shelfGapClass =
+    !isDev || cardGap === "roomier"
+      ? "gap-3"
+      : cardGap === "cozy"
+        ? "gap-5"
+        : "gap-10";
+  /** DEV poster size slider; production always 11.5rem. */
+  const shelfPosterRem = isDev ? posterWidthRem : 11.5;
+  /** Twin Pane poster detail — desktop default; DEV can turn Off. */
+  const posterDetailEnabled =
+    mdUp && shelfLayout && (!isDev || posterDetailMode === "twin");
+
+  const vtToken = useCallback(
+    (hash: string) => `lib-poster-${hash}-${vtUid}`,
+    [vtUid],
+  );
+
+  const openDetail = useCallback(
+    (hash: string) => {
+      ensureFiles(hash);
+      flushSync(() => setShelfVtHash(hash));
+      startViewTransition(() => {
+        setOpenHash(hash);
+        setShelfVtHash(null);
+      });
+    },
+    [ensureFiles],
+  );
+
+  const closeDetail = useCallback(() => {
+    if (!openHash) return;
+    const hash = openHash;
+    const t = startViewTransition(() => {
+      setOpenHash(null);
+      setShelfVtHash(hash);
+    });
+    if (t?.finished) {
+      void t.finished.finally(() => setShelfVtHash(null));
+    } else {
+      setShelfVtHash(null);
+    }
+  }, [openHash]);
+
+  useEffect(() => {
+    if (!openHash) return;
+    const hash = openHash;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      const t = startViewTransition(() => {
+        setOpenHash(null);
+        setShelfVtHash(hash);
+      });
+      if (t?.finished) {
+        void t.finished.finally(() => setShelfVtHash(null));
+      } else {
+        setShelfVtHash(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [openHash]);
+
+  // Close detail if the torrent disappears from the filtered list / layout changes.
+  useEffect(() => {
+    if (!openHash) return;
+    if (!posterDetailEnabled || !filtered.some((t) => t.hash === openHash)) {
+      setOpenHash(null);
+      setShelfVtHash(null);
+    }
+  }, [openHash, posterDetailEnabled, filtered]);
+
+  const openTorrent = openHash
+    ? (displayTorrents.find((t) => t.hash === openHash) ?? null)
+    : null;
 
   return (
     <div className="mt-0 space-y-2">
+      <style>{`
+        ::view-transition-group(root) {
+          animation-duration: 0.32s;
+        }
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+          animation-duration: 0.28s;
+          mix-blend-mode: normal;
+        }
+      `}</style>
+
       <LibraryChrome
         filter={filter}
         onFilterChange={setFilter}
@@ -297,11 +405,18 @@ export default function LibraryTable({
       ) : (
         <div
           className={cn(
-            "grid gap-3 pt-0",
-            shelfLayout
-              ? "grid-cols-[repeat(auto-fill,minmax(11.5rem,1fr))]"
-              : "grid-cols-1 @md:grid-cols-2",
+            "grid pt-0",
+            shelfGapClass,
+            !shelfLayout && "grid-cols-1 @md:grid-cols-2",
           )}
+          style={
+            shelfLayout
+              ? ({
+                  gridTemplateColumns: `repeat(auto-fill, minmax(${shelfPosterRem}rem, 1fr))`,
+                  ["--library-poster-w"]: `${shelfPosterRem}rem`,
+                } as CSSProperties)
+              : undefined
+          }
         >
           {filtered.map((t) => {
             const imdbId = imdbIdFromTags(t.tags);
@@ -336,16 +451,75 @@ export default function LibraryTable({
                 onReannounce={() => handleReannounce(t.hash)}
                 onDelete={(withFiles) => handleDelete(t.hash, withFiles)}
                 onMouseEnter={() => ensureFiles(t.hash)}
+                onPosterClick={
+                  posterDetailEnabled
+                    ? () => openDetail(t.hash)
+                    : undefined
+                }
+                posterVtName={
+                  posterDetailEnabled &&
+                  shelfVtHash === t.hash &&
+                  openHash !== t.hash
+                    ? vtToken(t.hash)
+                    : null
+                }
               />
             );
           })}
         </div>
       )}
 
+      {mounted && openTorrent && posterDetailEnabled ? (
+        <LibraryPosterDetail
+          vtName={vtToken(openTorrent.hash)}
+          onClose={closeDetail}
+          torrent={openTorrent}
+          meta={
+            (() => {
+              const id = imdbIdFromTags(openTorrent.tags);
+              return id ? imdbMap[id] : undefined;
+            })()
+          }
+          files={
+            isLibrarySimHash(openTorrent.hash)
+              ? makeLibrarySimFiles(openTorrent.progress)
+              : filesMap[openTorrent.hash]
+          }
+          isLoadingFiles={
+            !isLibrarySimHash(openTorrent.hash) &&
+            requestedFiles.has(openTorrent.hash) &&
+            filesMap[openTorrent.hash] === undefined
+          }
+          formatBytes={formatBytes}
+          onFetchFiles={() => ensureFiles(openTorrent.hash)}
+          onDownloadFile={(file) => {
+            if (isLibrarySimHash(openTorrent.hash)) return;
+            onDownloadFile(openTorrent.hash, file);
+          }}
+          onPause={() => handlePause(openTorrent.hash)}
+          onResume={() => handleResume(openTorrent.hash)}
+          onRecheck={() => handleRecheck(openTorrent.hash)}
+          onReannounce={() => handleReannounce(openTorrent.hash)}
+          onDelete={(withFiles) => handleDelete(openTorrent.hash, withFiles)}
+          onMouseEnter={() => ensureFiles(openTorrent.hash)}
+          progressColorOverride={
+            isDev && isLibrarySimHash(openTorrent.hash)
+              ? simProgressColor
+              : undefined
+          }
+        />
+      ) : null}
+
       {isDev ? (
         <LibraryDebugPanel
           cardLayout={cardLayout}
           onCardLayoutChange={setCardLayout}
+          cardGap={cardGap}
+          onCardGapChange={setCardGap}
+          posterDetailMode={posterDetailMode}
+          onPosterDetailModeChange={setPosterDetailMode}
+          posterWidthRem={posterWidthRem}
+          onPosterWidthRemChange={setPosterWidthRem}
           simScenario={simScenario}
           onSimScenarioChange={setSimScenario}
           simProgressColor={simProgressColor}

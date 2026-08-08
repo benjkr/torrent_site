@@ -981,4 +981,8 @@ export interface LibraryTorrentCardProps {
    * DEV sim: force progress fill + sparkle hue to this hex (live color picker).
    */
   progressColorOverride?: string | null;
+  /** Open Twin Pane poster detail (desktop shelf). */
+  onPosterClick?: () => void;
+  /** Shared View Transition name while morphing poster ↔ detail. */
+  posterVtName?: string | null;
 }

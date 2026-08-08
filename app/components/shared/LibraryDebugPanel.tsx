@@ -8,11 +8,20 @@ import type { LibraryCardLayout } from "@/components/LibraryTorrentCard";
 import type { LibrarySimScenario } from "@/lib/library-sim-torrent";
 import { cn } from "@/lib/utils";
 
+export type LibraryCardGap = "roomier" | "cozy" | "wide";
+export type PosterDetailMode = "twin" | "off";
 export type { LibrarySimScenario, LibraryCardLayout };
 
 interface LibraryDebugPanelProps {
   cardLayout: LibraryCardLayout;
   onCardLayoutChange: (v: LibraryCardLayout) => void;
+  cardGap: LibraryCardGap;
+  onCardGapChange: (v: LibraryCardGap) => void;
+  posterDetailMode: PosterDetailMode;
+  onPosterDetailModeChange: (v: PosterDetailMode) => void;
+  /** Shelf poster width in rem (default 13). */
+  posterWidthRem: number;
+  onPosterWidthRemChange: (v: number) => void;
   simScenario: LibrarySimScenario;
   onSimScenarioChange: (v: LibrarySimScenario) => void;
   simProgressColor: string;
@@ -63,6 +72,12 @@ function FlagGroup<T extends string>({
 export default function LibraryDebugPanel({
   cardLayout,
   onCardLayoutChange,
+  cardGap,
+  onCardGapChange,
+  posterDetailMode,
+  onPosterDetailModeChange,
+  posterWidthRem,
+  onPosterWidthRemChange,
   simScenario,
   onSimScenarioChange,
   simProgressColor,
@@ -208,15 +223,95 @@ export default function LibraryDebugPanel({
                 {
                   id: "shelf",
                   label: "Shelf",
-                  hint: "Cover-first Fused Pill cards with Ink underlip drawer.",
+                  hint: "Cover-first Fused Pill cards with Ink underlip drawer (desktop + mobile).",
                 },
                 {
                   id: "legacy",
                   label: "Original",
-                  hint: "Previous horizontal strip cards.",
+                  hint: "Previous horizontal strip cards (desktop strip / mobile meta band).",
                 },
               ]}
             />
+
+            <FlagGroup
+              label="Card gap"
+              value={cardGap}
+              onChange={onCardGapChange}
+              options={[
+                {
+                  id: "roomier",
+                  label: "Default",
+                  hint: "Tight default spacing (gap-3).",
+                },
+                {
+                  id: "cozy",
+                  label: "Cozy",
+                  hint: "Previous default spacing (gap-5).",
+                },
+                {
+                  id: "wide",
+                  label: "Wide",
+                  hint: "Earlier roomier spacing (gap-10).",
+                },
+              ]}
+            />
+
+            <FlagGroup
+              label="Poster detail"
+              value={posterDetailMode}
+              onChange={onPosterDetailModeChange}
+              options={[
+                {
+                  id: "twin",
+                  label: "Twin",
+                  hint: "Click shelf poster → Twin Pane lobby detail (default).",
+                },
+                {
+                  id: "off",
+                  label: "Off",
+                  hint: "Previous behavior — poster is not clickable for detail.",
+                },
+              ]}
+            />
+
+            <section className="space-y-1.5">
+              <div className="flex items-center justify-between gap-3">
+                <h3
+                  className="shrink-0 text-[0.625rem] font-semibold uppercase tracking-wide text-muted-foreground"
+                  title="Shelf poster / column width (rem). Production stays at 11.5."
+                >
+                  Poster size
+                </h3>
+                <span className="font-mono text-[0.625rem] tabular-nums text-foreground">
+                  {posterWidthRem.toFixed(1)}rem
+                  {posterWidthRem === 11.5 ? " · default" : ""}
+                </span>
+              </div>
+              <input
+                type="range"
+                min={8}
+                max={20}
+                step={0.5}
+                value={posterWidthRem}
+                onChange={(e) =>
+                  onPosterWidthRemChange(Number(e.target.value))
+                }
+                aria-label="Poster width in rem"
+                className="w-full accent-foreground"
+              />
+              <div className="flex justify-between text-[0.5625rem] tabular-nums text-muted-foreground">
+                <span>8</span>
+                <button
+                  type="button"
+                  className="rounded px-1.5 py-0.5 hover:bg-muted/60 hover:text-foreground"
+                  title="Reset to production default (11.5rem)"
+                  onClick={() => onPosterWidthRemChange(11.5)}
+                >
+                  11.5
+                </button>
+                <span>20</span>
+              </div>
+            </section>
           </div>
         </div>
       ) : null}

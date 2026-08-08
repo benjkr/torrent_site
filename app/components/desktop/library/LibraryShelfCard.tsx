@@ -4,6 +4,7 @@ import {
   HardDriveIcon,
   UsersIcon,
 } from "lucide-react";
+import type { CSSProperties } from "react";
 
 import {
   ActionRow,
@@ -134,6 +135,11 @@ export function LibraryShelfCard(props: LibraryTorrentCardProps) {
   const active = isDownloading(t);
   const complete = isCompleted(t);
   const seeds = t.num_seeds ?? 0;
+  const canOpenDetail = typeof props.onPosterClick === "function";
+
+  const posterStyle: CSSProperties | undefined = props.posterVtName
+    ? { viewTransitionName: props.posterVtName }
+    : undefined;
 
   const completeLeading = complete ? (
     <span
@@ -145,32 +151,51 @@ export function LibraryShelfCard(props: LibraryTorrentCardProps) {
     </span>
   ) : undefined;
 
+  const poster = (
+    <div
+      className={cn(
+        "relative z-10 aspect-2/3 w-full overflow-hidden rounded-xl bg-muted",
+        "shadow-[0_16px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/12",
+        canOpenDetail &&
+          "cursor-pointer transition-shadow hover:shadow-[0_20px_48px_rgba(0,0,0,0.65)]",
+      )}
+      style={posterStyle}
+    >
+      {meta?.image ? (
+        <img
+          src={meta.image}
+          alt=""
+          className="absolute inset-0 size-full object-cover"
+          loading="lazy"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-zinc-700 via-zinc-800 to-zinc-950 text-white/25">
+          <FilmIcon className="size-10" />
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <article
-      className="w-full max-w-[13rem] justify-self-center"
+      className="w-full justify-self-center"
+      style={{ maxWidth: "var(--library-poster-w, 11.5rem)" }}
       title={displayTitle}
       onMouseEnter={props.onMouseEnter}
     >
       <div className="relative isolate">
-        <div
-          className={cn(
-            "relative z-10 aspect-2/3 w-full overflow-hidden rounded-xl bg-muted",
-            "shadow-[0_16px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/12",
-          )}
-        >
-          {meta?.image ? (
-            <img
-              src={meta.image}
-              alt=""
-              className="absolute inset-0 size-full object-cover"
-              loading="lazy"
-            />
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center bg-linear-to-br from-zinc-700 via-zinc-800 to-zinc-950 text-white/25">
-              <FilmIcon className="size-10" />
-            </div>
-          )}
-        </div>
+        {canOpenDetail ? (
+          <button
+            type="button"
+            onClick={props.onPosterClick}
+            className="block w-full text-left outline-none focus-visible:ring-2 focus-visible:ring-sky-400/70 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            title={`Open detail — ${displayTitle}`}
+          >
+            {poster}
+          </button>
+        ) : (
+          poster
+        )}
         <div className="pointer-events-none absolute inset-x-0 top-0 z-20 aspect-2/3 w-full">
           <FusedPropsPill name={t.name} />
         </div>
