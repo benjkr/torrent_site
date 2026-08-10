@@ -9,7 +9,10 @@ import {
 } from "react-icons/si";
 import { TbBadgeCc, TbFileTypeTxt, TbPhoto } from "react-icons/tb";
 
+import { extensionFromPath, isVideoFilePath } from "@/lib/media-file";
 import { cn } from "@/lib/utils";
+
+export { isVideoFilePath } from "@/lib/media-file";
 
 export type FileIconEntry = {
   Icon: IconType;
@@ -65,21 +68,10 @@ const FILE_ICONS = {
   },
 } as const satisfies Record<string, FileIconEntry>;
 
-function extensionFromPath(path: string): string {
-  const base = path.split(/[/\\]/).pop() ?? path;
-  const dot = base.lastIndexOf(".");
-  if (dot <= 0) return "";
-  return base.slice(dot + 1).toLowerCase();
-}
-
 export function fileIconForPath(path: string): FileIconEntry {
   const ext = extensionFromPath(path);
 
-  if (
-    ["mkv", "mp4", "avi", "m4v", "mov", "wmv", "webm", "ts", "m2ts", "mpg", "mpeg"].includes(
-      ext,
-    )
-  ) {
+  if (isVideoFilePath(path)) {
     return FILE_ICONS.video;
   }
 
