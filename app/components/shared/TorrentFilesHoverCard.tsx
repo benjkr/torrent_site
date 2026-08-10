@@ -53,12 +53,14 @@ function StatusAction({
   fileName,
   onDownloadFile,
 }: {
+  /** 0–100 percentage, or null when unknown. */
   progress: number | null;
   fileName: string;
   onDownloadFile?: (fileName: string) => void;
 }) {
-  if (progress == null || !onDownloadFile) return null;
-  if (progress >= 100) {
+  const complete = progress != null && progress >= 100;
+
+  if (onDownloadFile && complete) {
     return (
       <button
         type="button"
@@ -75,6 +77,8 @@ function StatusAction({
       </button>
     );
   }
+
+  if (progress == null) return null;
   return (
     <span className="w-7 text-right text-[0.5625rem] tabular-nums text-white/50">
       {progress}%

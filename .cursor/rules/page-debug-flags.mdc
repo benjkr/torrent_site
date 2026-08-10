@@ -18,6 +18,7 @@ Temp design / comparison pages are **auto-discovered** — no edits to `routes.t
 
 - **Add:** create `app/dev-pages/<unique-slug>.tsx` (kebab-case slug; pick a name that will not collide with other agents’ pages).
 - **Export:** `export const devPage = { label: "Short nav label" }` plus a default page component. URL becomes `/dev/<slug>`. Nav links appear bottom-right (above the Debug button), DEV only.
+- **CSS:** Tailwind always scans `app/dev-pages` (`@source` in `app/index.css` + Vite watcher). Do **not** hand-maintain class safelists or per-page CSS imports for design pages.
 - **Iterate in place:** when asked to change a design on an existing dev page, or make new variants from a specific design on that page, **replace that same file’s contents**. Do **not** create another dev page. Drop the previous exploration UI unless the user asks to keep it.
 - **Delete:** remove that file only. Do not touch `routes.ts`, `DebugPagesNav`, or other pages.
 - **Authoring:** keep **all newly generated UI in that one file** (variants, mocks, helpers). Do **not** split into `app/components/...` during exploration. **Reuse existing app components** when they already fit.

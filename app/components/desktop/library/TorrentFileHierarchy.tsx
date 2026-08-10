@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRightIcon, FolderIcon } from "lucide-react";
+import {
+  ChevronRightIcon,
+  DownloadIcon,
+  FolderIcon,
+} from "lucide-react";
 
 import { FileTypeIcon } from "@/lib/file-icon";
 import {
@@ -21,6 +25,7 @@ function FileTreeNodeRow({
   openDirs,
   onToggle,
   formatBytes,
+  onDownloadFile,
 }: {
   node: FileTreeNode;
   depth: number;
@@ -28,23 +33,41 @@ function FileTreeNodeRow({
   openDirs: Set<string>;
   onToggle: (path: string) => void;
   formatBytes: (bytes: number) => string;
+  onDownloadFile?: (path: string) => void;
 }) {
   const path = parentPath ? `${parentPath}/${node.name}` : node.name;
   const pad = { paddingLeft: `${depth * 0.75 + 0.375}rem` };
 
   if (node.type === "file") {
+    const fullName = path;
+    const complete = node.progress >= 1;
+
     return (
-      <li
-        className="flex items-center gap-1.5 rounded-lg py-1 pr-1.5 hover:bg-white/10"
-        style={pad}
-      >
-        <FileTypeIcon path={node.name} className="size-3 shrink-0" />
-        <span className="min-w-0 flex-1 truncate text-[0.625rem] text-white/90">
-          {node.name}
-        </span>
-        <span className="shrink-0 text-[0.5625rem] tabular-nums text-white/40">
-          {Math.round(node.progress * 100)}% · {formatBytes(node.size)}
-        </span>
+      <li className="flex items-center gap-0.5" style={pad}>
+        <div className="flex w-full min-w-0 flex-1 items-center gap-1.5 rounded-lg py-1 pr-1 text-left hover:bg-white/10">
+          <FileTypeIcon path={node.name} className="size-3 shrink-0" />
+          <span className="min-w-0 flex-1 truncate text-[0.625rem] text-white/90">
+            {node.name}
+          </span>
+          <span className="shrink-0 text-[0.5625rem] tabular-nums text-white/40">
+            {Math.round(node.progress * 100)}% · {formatBytes(node.size)}
+          </span>
+        </div>
+        {onDownloadFile && complete ? (
+          <button
+            type="button"
+            title="Download"
+            aria-label={`Download ${node.name}`}
+            className="inline-flex size-5 shrink-0 items-center justify-center rounded-md text-emerald-400 transition-colors hover:bg-white/10"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDownloadFile(fullName);
+            }}
+          >
+            <DownloadIcon className="size-3" />
+          </button>
+        ) : null}
       </li>
     );
   }
@@ -83,6 +106,7 @@ function FileTreeNodeRow({
               openDirs={openDirs}
               onToggle={onToggle}
               formatBytes={formatBytes}
+              onDownloadFile={onDownloadFile}
             />
           ))}
         </ul>
@@ -97,12 +121,15 @@ export function TorrentFileHierarchy({
   formatBytes,
   loading = false,
   className,
+  onDownloadFile,
 }: {
   files: FlatFile[];
   totalSize: number;
   formatBytes: (bytes: number) => string;
   loading?: boolean;
   className?: string;
+  /** Every file is downloadable when provided. */
+  onDownloadFile?: (path: string) => void;
 }) {
   const tree = useMemo(() => buildFileTree(files), [files]);
   const [openDirs, setOpenDirs] = useState<Set<string>>(() => {
@@ -159,6 +186,7 @@ export function TorrentFileHierarchy({
               openDirs={openDirs}
               onToggle={toggle}
               formatBytes={formatBytes}
+              onDownloadFile={onDownloadFile}
             />
           ))}
         </ul>

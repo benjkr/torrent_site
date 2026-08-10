@@ -46,7 +46,10 @@ set +a
 : "${QB_BASE_URL:?error: QB_BASE_URL must be set in .env.production}"
 : "${QB_USERNAME:?error: QB_USERNAME must be set in .env.production}"
 : "${GH_TOKEN:?error: GH_TOKEN must be set in .env.production}"
+: "${QB_DOWNLOADS_HOST_PATH:?error: QB_DOWNLOADS_HOST_PATH must be set in .env.production (host path of qB downloads volume)}"
 QB_PASSWORD="${QB_PASSWORD:-}"
+LIBRARY_FILES_ROOT="${LIBRARY_FILES_ROOT:-/downloads}"
+LIBRARY_FILES_QB_PREFIX="${LIBRARY_FILES_QB_PREFIX:-/downloads}"
 
 if ! TAG="$(git describe --tags --exact-match HEAD 2>/dev/null)"; then
   echo "error: HEAD is not exactly on a git tag (tag the commit first)" >&2
@@ -70,14 +73,17 @@ docker build \
 docker push "$IMAGE"
 
 REMOTE_CMD="$(printf \
-  'IMAGE=%q CONTAINER_NAME=%q GHCR_USER=%q GH_TOKEN=%q QB_BASE_URL=%q QB_USERNAME=%q QB_PASSWORD=%q bash -s' \
+  'IMAGE=%q CONTAINER_NAME=%q GHCR_USER=%q GH_TOKEN=%q QB_BASE_URL=%q QB_USERNAME=%q QB_PASSWORD=%q LIBRARY_FILES_ROOT=%q LIBRARY_FILES_QB_PREFIX=%q QB_DOWNLOADS_HOST_PATH=%q bash -s' \
   "$IMAGE" \
   "$CONTAINER_NAME" \
   "$GHCR_USER" \
   "$GH_TOKEN" \
   "$QB_BASE_URL" \
   "$QB_USERNAME" \
-  "$QB_PASSWORD")"
+  "$QB_PASSWORD" \
+  "$LIBRARY_FILES_ROOT" \
+  "$LIBRARY_FILES_QB_PREFIX" \
+  "$QB_DOWNLOADS_HOST_PATH")"
 
 # shellcheck disable=SC2029
 ssh "${REMOTE_USER}@${HOST}" "$REMOTE_CMD" <<'REMOTE'
@@ -92,17 +98,27 @@ if docker inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
   docker rm "$CONTAINER_NAME"
 fi
 
+if [[ ! -d "$QB_DOWNLOADS_HOST_PATH" ]]; then
+  echo "error: QB_DOWNLOADS_HOST_PATH does not exist on server: $QB_DOWNLOADS_HOST_PATH" >&2
+  exit 1
+fi
+
+# Bind-mount the same host downloads dir qB uses → /downloads in this container.
 docker run -d \
   --name "$CONTAINER_NAME" \
   --restart unless-stopped \
   -p 3000:3000 \
+  -v "${QB_DOWNLOADS_HOST_PATH}:/downloads:ro" \
   -e NODE_ENV=production \
   -e "QB_BASE_URL=${QB_BASE_URL}" \
   -e "QB_USERNAME=${QB_USERNAME}" \
   -e "QB_PASSWORD=${QB_PASSWORD}" \
+  -e "LIBRARY_FILES_ROOT=${LIBRARY_FILES_ROOT}" \
+  -e "LIBRARY_FILES_QB_PREFIX=${LIBRARY_FILES_QB_PREFIX}" \
   "$IMAGE"
 
 echo "Deployed ${IMAGE} as container ${CONTAINER_NAME}"
+echo "Mounted ${QB_DOWNLOADS_HOST_PATH} → /downloads (ro)"
 REMOTE
 
 echo "Done."

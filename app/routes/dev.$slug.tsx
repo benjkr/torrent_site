@@ -1,6 +1,9 @@
 import type { ComponentType } from "react";
 import { useParams, type LoaderFunctionArgs } from "react-router";
 
+// Keep full Tailwind CSS on the /dev/* module graph (critical CSS + Vite HMR).
+import "../index.css";
+
 const pageModules = import.meta.env.DEV
   ? import.meta.glob<{ default: ComponentType }>("../dev-pages/*.tsx", {
       eager: true,

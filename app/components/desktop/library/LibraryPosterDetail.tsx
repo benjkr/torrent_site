@@ -3,10 +3,11 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   FilmIcon,
+  PlayIcon,
   UsersIcon,
   XIcon,
 } from "lucide-react";
-import type { CSSProperties, ReactNode } from "react";
+import { type CSSProperties, type ReactNode } from "react";
 
 import { TorrentFileHierarchy } from "@/components/desktop/library/TorrentFileHierarchy";
 import {
@@ -66,9 +67,33 @@ export type LibraryPosterDetailProps = LibraryTorrentCardProps & {
   onClose: () => void;
 };
 
+/** Placeholder where in-browser watch will return later. */
+function WatchComingSoon({ className }: { className?: string }) {
+  return (
+    <div
+      className={cn(
+        "relative min-h-0 w-full overflow-hidden rounded-2xl bg-black",
+        "ring-1 ring-white/20",
+        "shadow-[0_24px_60px_rgba(0,0,0,0.65),inset_0_1px_0_rgba(255,255,255,0.18)]",
+        className,
+      )}
+    >
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-[radial-gradient(ellipse_at_center,rgb(56,56,56,0.45),#050505_70%)] px-3 text-center">
+        <PlayIcon className="size-6 text-white/25" />
+        <p className="text-[0.6875rem] font-medium tracking-wide text-white/55">
+          Coming soon
+        </p>
+        <p className="text-[0.5625rem] text-white/35">
+          In-browser watch is not available yet
+        </p>
+      </div>
+    </div>
+  );
+}
+
 /**
- * Twin Pane poster detail — outer glass lobby, oversized poster left,
- * inspector (stats + ETA/ActionRow | file tree) right.
+ * Poster detail — stats | files. Completed torrents show a watch placeholder;
+ * every file remains downloadable from the Files list.
  */
 export function LibraryPosterDetail({
   vtName,
@@ -76,7 +101,8 @@ export function LibraryPosterDetail({
   ...cardProps
 }: LibraryPosterDetailProps) {
   const model = buildModel(cardProps);
-  const { torrent: t, meta, displayTitle, formatBytes, eta, status } = model;
+  const { torrent: t, meta, displayTitle, formatBytes, eta, status, complete } =
+    model;
   const dominantColor = useDominantColor(meta?.image);
   const progressColorOverride = import.meta.env.DEV
     ? (cardProps.progressColorOverride ?? null)
@@ -113,8 +139,6 @@ export function LibraryPosterDetail({
           className={cn(
             "pointer-events-auto",
             glassShell("bg-zinc-950/55 p-4"),
-            // Height locked to poster (2:3 of w-64 / sm:w-72) + p-4 vertical padding —
-            // expanding files scroll inside instead of growing the card.
             "relative flex w-full max-w-6xl items-stretch gap-5 overflow-hidden",
             "h-[min(88vh,calc(16rem*3/2+2rem))] sm:h-[min(88vh,calc(18rem*3/2+2rem))]",
           )}
@@ -142,7 +166,7 @@ export function LibraryPosterDetail({
 
           <div
             className={cn(
-              "flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-white/12 bg-black/35 p-3.5",
+              "relative flex h-full min-h-0 min-w-0 flex-1 flex-col gap-3 overflow-hidden rounded-xl border border-white/12 bg-black/35 p-3.5",
               "shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]",
             )}
           >
@@ -167,32 +191,47 @@ export function LibraryPosterDetail({
             </div>
 
             <div className="grid min-h-0 flex-1 grid-cols-2 grid-rows-1 gap-3">
-              <div className="flex min-h-0 min-w-0 flex-col gap-3 overflow-hidden">
-                <div className="space-y-0.5">
-                  <MetaRow label="State">{status.text}</MetaRow>
+              <div className="flex min-h-0 min-w-0 flex-col gap-2 overflow-hidden">
+                <div className="shrink-0 space-y-0.5">
+                  {complete ? null : (
+                    <MetaRow label="State">{status.text}</MetaRow>
+                  )}
                   <MetaRow label="Size">{formatBytes(t.size)}</MetaRow>
-                  <MetaRow label="↓ / ↑">
-                    <span className="inline-flex items-center gap-2">
-                      <span className="inline-flex items-center gap-0.5 text-emerald-400">
-                        <ArrowDownIcon className="size-3" />
-                        {fmtRate(t.dlspeed || 0)}
-                      </span>
+                  {complete ? (
+                    <MetaRow label="↑">
                       <span className="inline-flex items-center gap-0.5 text-sky-400">
                         <ArrowUpIcon className="size-3" />
                         {fmtRate(t.upspeed || 0)}
                       </span>
-                    </span>
-                  </MetaRow>
-                  <MetaRow label="Peers">
-                    <span className="inline-flex items-center gap-1">
-                      <UsersIcon className="size-3 text-sky-400" />
-                      {seeds}S · {peers}P
-                    </span>
-                  </MetaRow>
+                    </MetaRow>
+                  ) : (
+                    <>
+                      <MetaRow label="↓ / ↑">
+                        <span className="inline-flex items-center gap-2">
+                          <span className="inline-flex items-center gap-0.5 text-emerald-400">
+                            <ArrowDownIcon className="size-3" />
+                            {fmtRate(t.dlspeed || 0)}
+                          </span>
+                          <span className="inline-flex items-center gap-0.5 text-sky-400">
+                            <ArrowUpIcon className="size-3" />
+                            {fmtRate(t.upspeed || 0)}
+                          </span>
+                        </span>
+                      </MetaRow>
+                      <MetaRow label="Peers">
+                        <span className="inline-flex items-center gap-1">
+                          <UsersIcon className="size-3 text-sky-400" />
+                          {seeds}S · {peers}P
+                        </span>
+                      </MetaRow>
+                    </>
+                  )}
                 </div>
 
-                <div className="mt-auto space-y-1.5">
-                  <div className="flex items-baseline justify-between gap-2 px-0.5">
+                {complete ? (
+                  <WatchComingSoon className="min-h-0 flex-1" />
+                ) : (
+                  <div className="mt-auto flex items-baseline justify-between gap-2 px-0.5">
                     <span className="text-[0.5625rem] font-medium uppercase tracking-wide text-white/50">
                       ETA
                     </span>
@@ -200,6 +239,9 @@ export function LibraryPosterDetail({
                       {eta || "—"}
                     </span>
                   </div>
+                )}
+
+                <div className="shrink-0">
                   <ActionRow
                     model={model}
                     dominantColor={dominantColor}
@@ -215,6 +257,7 @@ export function LibraryPosterDetail({
                   totalSize={t.size}
                   formatBytes={formatBytes}
                   loading={cardProps.isLoadingFiles}
+                  onDownloadFile={cardProps.onDownloadFile}
                 />
               </div>
             </div>
