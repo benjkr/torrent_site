@@ -18,6 +18,33 @@ import { QbDebugProvider } from "./lib/qb-debug";
 import { QbStatusProvider, useQbStatus } from "./lib/qb-status";
 import { THEME_INIT_SCRIPT } from "./lib/theme";
 
+/**
+ * DEV-only: keep Vite's full Tailwind stylesheet attached.
+ * Do not treat React Router critical.css as sufficient — it can lag behind
+ * newly added `app/dev-pages` utilities when styles are wiped on hydrate fail.
+ */
+const DEV_CSS_RECOVERY_SCRIPT = `(function(){
+  function hasViteIndexCss(){
+    var s=document.querySelectorAll("style[data-vite-dev-id]");
+    for(var i=0;i<s.length;i++){
+      if((s[i].getAttribute("data-vite-dev-id")||"").indexOf("index.css")!==-1)return true;
+    }
+    return false;
+  }
+  function ensure(){
+    if(!document.head||hasViteIndexCss())return;
+    if(document.querySelector("[data-dev-css-recovery=vite-index]"))return;
+    var s=document.createElement("script");
+    s.type="module";
+    s.setAttribute("data-dev-css-recovery","vite-index");
+    s.textContent="import '/app/index.css';";
+    document.head.appendChild(s);
+  }
+  ensure();
+  new MutationObserver(ensure).observe(document,{childList:true,subtree:true});
+  [0,50,100,250,500,1000,2000,4000].forEach(function(ms){setTimeout(ensure,ms)});
+})();`;
+
 export const links: LinksFunction = () => [
   {
     rel: "preconnect",
@@ -71,8 +98,10 @@ export function Layout({ children }: { children: ReactNode }) {
             suppressHydrationWarning
             dangerouslySetInnerHTML={{
               // Runs at HTML parse time (before hydrate). Survives React replacing
-              // #document on hydration failure and re-attaches wiped Vite/critical CSS.
-              __html: `(function(){function has(){if(document.querySelector("[data-dev-css-recovery],[data-react-router-critical-css]"))return true;var s=document.querySelectorAll("style[data-vite-dev-id]");for(var i=0;i<s.length;i++){if((s[i].getAttribute("data-vite-dev-id")||"").indexOf("index.css")!==-1)return true}return false}function ensure(){if(!document.head||has())return;var l=document.createElement("link");l.rel="stylesheet";l.href="/@react-router/critical.css?pathname="+encodeURIComponent(location.pathname);l.setAttribute("data-dev-css-recovery","");document.head.appendChild(l)}ensure();new MutationObserver(ensure).observe(document,{childList:true,subtree:true});[0,50,100,250,500,1000,2000,4000].forEach(function(ms){setTimeout(ensure,ms)})})();`,
+              // #document on hydration failure. Prefer Vite's full index.css (all
+              // Tailwind utilities, including app/dev-pages) — critical.css alone can
+              // be stale/incomplete for glob-hosted design pages.
+              __html: DEV_CSS_RECOVERY_SCRIPT,
             }}
           />
         ) : null}

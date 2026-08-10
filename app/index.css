@@ -2,8 +2,12 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* Glob-loaded only — ensure Tailwind scans these for utility generation. */
-@source "./dev-pages/**/*.{tsx,ts}";
+/*
+ * Dev design pages are loaded via import.meta.glob (not a static route import).
+ * Point @source at the directory so Tailwind always scans / watches new files
+ * under app/dev-pages without per-page CSS config.
+ */
+@source "./dev-pages";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
