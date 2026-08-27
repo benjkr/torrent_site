@@ -4,7 +4,10 @@ import { BugIcon, CopyIcon, XIcon } from "lucide-react";
 
 import { useForceMobile } from "@/components/shared/ForceMobileToggle";
 import { Button } from "@/components/ui/button";
-import type { SearchResultsView } from "@/components/SearchResultsTable";
+import type {
+  SearchResultsView,
+  TrackerMarkView,
+} from "@/components/SearchResultsTable";
 import { cn } from "@/lib/utils";
 import type { SearchDebugInfo } from "@/lib/types";
 
@@ -24,6 +27,8 @@ interface SearchDebugPanelProps {
   client: SearchClientDebug;
   resultsView: SearchResultsView;
   onResultsViewChange: (v: SearchResultsView) => void;
+  trackerMark: TrackerMarkView;
+  onTrackerMarkChange: (v: TrackerMarkView) => void;
 }
 
 function FlagGroup<T extends string>({
@@ -117,6 +122,8 @@ export default function SearchDebugPanel({
   client,
   resultsView,
   onResultsViewChange,
+  trackerMark,
+  onTrackerMarkChange,
 }: SearchDebugPanelProps) {
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -170,7 +177,7 @@ export default function SearchDebugPanel({
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3">
             <div className="space-y-3">
               <p className="text-[0.625rem] text-muted-foreground">
-                Dev-only. Production: Soft well · title trail.
+                Dev-only. Production: Soft well · title trail · tracker mark.
               </p>
               <FlagGroup
                 label="Results"
@@ -196,6 +203,23 @@ export default function SearchDebugPanel({
                     id: "clean",
                     label: "Clean",
                     hint: "Previous dense dotted meta list.",
+                  },
+                ]}
+              />
+              <FlagGroup
+                label="Tracker"
+                value={trackerMark}
+                onChange={onTrackerMarkChange}
+                options={[
+                  {
+                    id: "mark",
+                    label: "Mark",
+                    hint: "Monogram tile leads the meta row (YTS / Pirate Bay).",
+                  },
+                  {
+                    id: "off",
+                    label: "Off",
+                    hint: "Previous: no tracker mark.",
                   },
                 ]}
               />
@@ -226,7 +250,7 @@ export default function SearchDebugPanel({
             {server?.queries?.length ? (
               <section className="space-y-2">
                 <h3 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Apibay queries
+                  Queries
                 </h3>
                 <ul className="space-y-2">
                   {server.queries.map((branch) => (
@@ -248,6 +272,9 @@ export default function SearchDebugPanel({
                       <div className="mt-1 text-muted-foreground">
                         raw {branch.rawCount} · after {branch.afterFilterCount}
                       </div>
+                      {branch.error ? (
+                        <div className="mt-1 text-red-400/90">{branch.error}</div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>
@@ -255,7 +282,7 @@ export default function SearchDebugPanel({
             ) : (
               <section className="space-y-2">
                 <h3 className="text-[0.6875rem] font-semibold uppercase tracking-wide text-muted-foreground">
-                  Apibay
+                  Source URL
                 </h3>
                 <dl className="space-y-1.5">
                   <Row label="URL">
@@ -311,7 +338,7 @@ export default function SearchDebugPanel({
               </dl>
             </section>
 
-            <JsonBlock label="Raw apibay rows" value={server?.raw ?? []} />
+            <JsonBlock label="Raw source rows" value={server?.raw ?? []} />
             <JsonBlock
               label="Filtered (pre-slice)"
               value={server?.filtered ?? []}
