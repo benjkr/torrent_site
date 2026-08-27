@@ -21,11 +21,15 @@ import {
   normalizeTorrentFiles,
   TorrentFilesHoverCard,
 } from "@/components/TorrentFilesHoverCard";
+import { TrackerMonogram } from "@/components/shared/search/TrackerMonogram";
 import { formatBytes, cn } from "@/lib/utils";
 import type { ApiItem } from "@/lib/types";
 
 /** Soft well (title trail) is production default; older layouts only via DEV debug flag. */
 export type SearchResultsView = "well" | "meta" | "chips" | "clean";
+
+/** Monogram in the meta row is production default; hide only via DEV debug flag. */
+export type TrackerMarkView = "mark" | "off";
 
 interface Props {
   items: ApiItem[];
@@ -35,6 +39,8 @@ interface Props {
   qbOnline?: boolean;
   /** DEV-only comparison; production always uses well (title trail). */
   resultsView?: SearchResultsView;
+  /** DEV-only comparison; production always shows the monogram. */
+  trackerMark?: TrackerMarkView;
 }
 
 const fileCache: Record<string, { files: any[]; loading: boolean }> = {};
@@ -232,6 +238,17 @@ function rowMeta(item: ApiItem) {
   };
 }
 
+function TrackerLead({
+  item,
+  show,
+}: {
+  item: ApiItem;
+  show: boolean;
+}) {
+  if (!show) return null;
+  return <TrackerMonogram tracker={item.tracker} />;
+}
+
 /* ─── Clean (legacy) ──────────────────────────────────────── */
 
 function CleanRow({
@@ -240,12 +257,14 @@ function CleanRow({
   qbOnline,
   onDownload,
   onHover,
+  showTracker,
 }: {
   item: ApiItem;
   inLibrary: boolean;
   qbOnline: boolean;
   onDownload: Props["onDownload"];
   onHover: () => void;
+  showTracker: boolean;
 }) {
   const { seeders, leechers, numFiles, size, added } = rowMeta(item);
 
@@ -270,6 +289,7 @@ function CleanRow({
         />
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+        <TrackerLead item={item} show={showTracker} />
         <Stat icon={HardDriveIcon} value={size} label="Size" />
         <DotSep />
         <span
@@ -325,12 +345,14 @@ function WellRow({
   qbOnline,
   onDownload,
   onHover,
+  showTracker,
 }: {
   item: ApiItem;
   inLibrary: boolean;
   qbOnline: boolean;
   onDownload: Props["onDownload"];
   onHover: () => void;
+  showTracker: boolean;
 }) {
   const { seeders, leechers, numFiles, size, added } = rowMeta(item);
 
@@ -380,6 +402,7 @@ function WellRow({
         />
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <TrackerLead item={item} show={showTracker} />
         <SoftWell title="Size">
           <HardDriveIcon className="size-2.5 opacity-60" aria-hidden />
           {size}
@@ -419,12 +442,14 @@ function WellMetaRow({
   qbOnline,
   onDownload,
   onHover,
+  showTracker,
 }: {
   item: ApiItem;
   inLibrary: boolean;
   qbOnline: boolean;
   onDownload: Props["onDownload"];
   onHover: () => void;
+  showTracker: boolean;
 }) {
   const { seeders, leechers, numFiles, size, added } = rowMeta(item);
 
@@ -450,6 +475,7 @@ function WellMetaRow({
         />
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+        <TrackerLead item={item} show={showTracker} />
         <SoftWell title="Size">
           <HardDriveIcon className="size-2.5 opacity-60" aria-hidden />
           {size}
@@ -506,12 +532,14 @@ function ChipsRow({
   qbOnline,
   onDownload,
   onHover,
+  showTracker,
 }: {
   item: ApiItem;
   inLibrary: boolean;
   qbOnline: boolean;
   onDownload: Props["onDownload"];
   onHover: () => void;
+  showTracker: boolean;
 }) {
   const { seeders, leechers, numFiles, size, added } = rowMeta(item);
 
@@ -537,6 +565,7 @@ function ChipsRow({
         />
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <TrackerLead item={item} show={showTracker} />
         <MetaChip title="Size">
           <HardDriveIcon className="size-2.5 opacity-60" aria-hidden />
           {size}
@@ -613,10 +642,12 @@ export default function SearchResults({
   libraryHashes = new Set(),
   qbOnline = true,
   resultsView = "well",
+  trackerMark = "mark",
 }: Props) {
   const [, rerender] = useState(0);
 
   const view: SearchResultsView = import.meta.env.DEV ? resultsView : "well";
+  const showTracker = import.meta.env.DEV ? trackerMark === "mark" : true;
   const darkShell = view === "well" || view === "meta" || view === "chips";
 
   const prevItems = useRef(items);
@@ -665,6 +696,7 @@ export default function SearchResults({
             qbOnline={qbOnline}
             onDownload={onDownload}
             onHover={() => loadFiles(item.id)}
+            showTracker={showTracker}
           />
         ))}
       </div>
@@ -682,6 +714,7 @@ export default function SearchResults({
             qbOnline={qbOnline}
             onDownload={onDownload}
             onHover={() => loadFiles(item.id)}
+            showTracker={showTracker}
           />
         ))}
       </div>
@@ -699,6 +732,7 @@ export default function SearchResults({
             qbOnline={qbOnline}
             onDownload={onDownload}
             onHover={() => loadFiles(item.id)}
+            showTracker={showTracker}
           />
         ))}
       </div>
@@ -708,14 +742,15 @@ export default function SearchResults({
   return (
     <div className="rounded-xl border border-border/70 bg-muted/20 px-2.5 sm:px-3">
       {items.map((item) => (
-        <CleanRow
-          key={item.id}
-          item={item}
-          inLibrary={libraryHashes.has(item.info_hash.toLowerCase())}
-          qbOnline={qbOnline}
-          onDownload={onDownload}
-          onHover={() => loadFiles(item.id)}
-        />
+          <CleanRow
+            key={item.id}
+            item={item}
+            inLibrary={libraryHashes.has(item.info_hash.toLowerCase())}
+            qbOnline={qbOnline}
+            onDownload={onDownload}
+            onHover={() => loadFiles(item.id)}
+            showTracker={showTracker}
+          />
       ))}
     </div>
   );

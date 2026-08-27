@@ -6,8 +6,11 @@ import type {
   SearchDebugQueryBranch,
   SearchResponse,
 } from "../lib/types";
+import { fetchYts, ytsListUrl } from "../lib/yts.server";
 
 const APYBAY_BASE = "https://apibay.org";
+const DUAL_MODE_CAP = 20;
+const SINGLE_QUERY_CAP = 40;
 
 function apibayUrlFor(q: string): string {
   return `${APYBAY_BASE}/q.php?q=${encodeURIComponent(q)}`;
@@ -22,6 +25,10 @@ function isValidRow(t: unknown): t is ApiItem {
   );
 }
 
+function tagPirateBay(item: ApiItem): ApiItem {
+  return { ...item, tracker: "piratebay" };
+}
+
 async function fetchApibay(q: string): Promise<{
   url: string;
   raw: unknown[];
@@ -33,7 +40,7 @@ async function fetchApibay(q: string): Promise<{
   return {
     url,
     raw: list,
-    valid: list.filter(isValidRow),
+    valid: list.filter(isValidRow).map(tagPirateBay),
   };
 }
 
@@ -64,6 +71,62 @@ function mergeByHash(batches: ApiItem[][]): ApiItem[] {
   return Array.from(byHash.values());
 }
 
+/** Interleave unique piratebay / YTS rows so one source cannot fill the cap alone. */
+function sliceFairMix(items: ApiItem[], cap: number): ApiItem[] {
+  const pb: ApiItem[] = [];
+  const yts: ApiItem[] = [];
+  const other: ApiItem[] = [];
+  for (const item of items) {
+    if (item.tracker === "yts") yts.push(item);
+    else if (item.tracker === "piratebay") pb.push(item);
+    else other.push(item);
+  }
+  const out: ApiItem[] = [];
+  let i = 0;
+  while (out.length < cap && (i < pb.length || i < yts.length)) {
+    if (i < pb.length) out.push(pb[i]!);
+    if (out.length >= cap) break;
+    if (i < yts.length) out.push(yts[i]!);
+    i += 1;
+  }
+  for (const item of other) {
+    if (out.length >= cap) break;
+    out.push(item);
+  }
+  return out;
+}
+
+function tagRaw(source: "apibay" | "yts", rows: unknown[]): unknown[] {
+  return rows.map((row) => ({ source, row }));
+}
+
+function branchFromSettled(
+  label: string,
+  url: string,
+  outcome: PromiseSettledResult<{
+    url: string;
+    raw: unknown[];
+    valid: ApiItem[];
+  }>,
+  afterFilterCount: number,
+): SearchDebugQueryBranch {
+  if (outcome.status === "fulfilled") {
+    return {
+      label,
+      url: outcome.value.url,
+      rawCount: outcome.value.raw.length,
+      afterFilterCount,
+    };
+  }
+  return {
+    label,
+    url,
+    rawCount: 0,
+    afterFilterCount: 0,
+    error: String(outcome.reason),
+  };
+}
+
 function buildDebug(opts: {
   query: string;
   filters: string[];
@@ -74,10 +137,11 @@ function buildDebug(opts: {
   items: ApiItem[];
 }): SearchDebugInfo {
   const primary = opts.branches[0];
+  const apibayBranch = opts.branches.find((b) => b.label.startsWith("Apibay"));
   return {
     query: opts.query,
     filters: opts.filters,
-    apibayUrl: primary?.url ?? "",
+    apibayUrl: apibayBranch?.url ?? primary?.url ?? "",
     queries: opts.branches,
     fetchedAt: new Date().toISOString(),
     durationMs: opts.durationMs,
@@ -123,14 +187,14 @@ export async function loader({
     const nameMatched = nameBranch?.valid ?? [];
     let results = mergeByHash([imdbMatched, nameMatched]);
     results = applyNameFilters(results, rawFilters);
-    const items = results.slice(0, 20);
+    const items = results.slice(0, DUAL_MODE_CAP);
 
     const durationMs = Math.round(performance.now() - started);
     if (!import.meta.env.DEV) return items;
 
     const branches: SearchDebugQueryBranch[] = [
       {
-        label: `IMDb id + regex ${ep}`,
+        label: `Apibay · IMDb id + regex ${ep}`,
         url: imdbBranch.url,
         rawCount: imdbBranch.raw.length,
         afterFilterCount: imdbMatched.length,
@@ -138,7 +202,7 @@ export async function loader({
     ];
     if (nameBranch && nameQuery) {
       branches.push({
-        label: `Name + ${ep}`,
+        label: `Apibay · Name + ${ep}`,
         url: nameBranch.url,
         rawCount: nameBranch.raw.length,
         afterFilterCount: nameMatched.length,
@@ -162,29 +226,42 @@ export async function loader({
     };
   }
 
-  // Single free-text / IMDb-id query
-  const branch = await fetchApibay(query!);
-  let results = applyNameFilters(branch.valid, rawFilters);
-  const items = results.slice(0, 20);
+  const q = query as string;
+  const [apibayOutcome, ytsOutcome] = await Promise.allSettled([
+    fetchApibay(q),
+    fetchYts(q),
+  ]);
+
+  const apibayValid =
+    apibayOutcome.status === "fulfilled" ? apibayOutcome.value.valid : [];
+  const ytsValid =
+    ytsOutcome.status === "fulfilled" ? ytsOutcome.value.valid : [];
+  const apibayRaw =
+    apibayOutcome.status === "fulfilled" ? apibayOutcome.value.raw : [];
+  const ytsRaw =
+    ytsOutcome.status === "fulfilled" ? ytsOutcome.value.raw : [];
+
+  let results = mergeByHash([apibayValid, ytsValid]);
+  results = applyNameFilters(results, rawFilters);
+  const items = sliceFairMix(results, SINGLE_QUERY_CAP);
   const durationMs = Math.round(performance.now() - started);
 
   if (!import.meta.env.DEV) return items;
 
+  const pbAfter = results.filter((t) => t.tracker === "piratebay").length;
+  const ytsAfter = results.filter((t) => t.tracker === "yts").length;
+
   return {
     items,
     debug: buildDebug({
-      query: query!,
+      query: q,
       filters: rawFilters,
       branches: [
-        {
-          label: "Single query",
-          url: branch.url,
-          rawCount: branch.raw.length,
-          afterFilterCount: results.length,
-        },
+        branchFromSettled("Apibay", apibayUrlFor(q), apibayOutcome, pbAfter),
+        branchFromSettled("YTS", ytsListUrl(q), ytsOutcome, ytsAfter),
       ],
       durationMs,
-      raw: branch.raw,
+      raw: [...tagRaw("apibay", apibayRaw), ...tagRaw("yts", ytsRaw)],
       filtered: results,
       items,
     }),

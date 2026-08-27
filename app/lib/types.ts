@@ -1,3 +1,5 @@
+export type TorrentTracker = "yts" | "piratebay"
+
 export interface ApiItem {
   added: string
   files: FileInfo[]
@@ -12,21 +14,23 @@ export interface ApiItem {
   size: string
   status: string
   username: string
+  tracker: TorrentTracker
 }
 
-/** DEV-only per-branch apibay query stats */
+/** DEV-only per-branch query stats (apibay, YTS, …) */
 export interface SearchDebugQueryBranch {
   label: string
   url: string
   rawCount: number
   afterFilterCount: number
+  error?: string
 }
 
 /** DEV-only payload from /api/search */
 export interface SearchDebugInfo {
   query: string
   filters: string[]
-  /** Primary / first apibay URL (compat) */
+  /** Primary / first source URL (compat; often apibay) */
   apibayUrl: string
   queries: SearchDebugQueryBranch[]
   fetchedAt: string

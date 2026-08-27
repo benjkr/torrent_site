@@ -3,6 +3,7 @@ import { useFetcher, useSearchParams } from "react-router";
 import SearchBar from "../components/SearchBar";
 import SearchResults, {
   type SearchResultsView,
+  type TrackerMarkView,
 } from "../components/SearchResultsTable";
 import SearchSortStrip, {
   sortSearchItems,
@@ -135,6 +136,7 @@ export default function SearchPage() {
   const [sortKey, setSortKey] = useState<SearchSortKey>("seeders");
   const [sortDir, setSortDir] = useState<SearchSortDir>("desc");
   const [resultsView, setResultsView] = useState<SearchResultsView>("well");
+  const [trackerMark, setTrackerMark] = useState<TrackerMarkView>("mark");
 
   const searchFetcher = useFetcher<SearchResponse>();
   const libraryFetcher = useFetcher<TorrentInfo[]>();
@@ -434,6 +436,7 @@ export default function SearchPage() {
                 libraryHashes={libraryHashes}
                 qbOnline={qbOnline}
                 resultsView={resultsView}
+                trackerMark={trackerMark}
               />
 
               {filteredTotal > PPER && (
@@ -494,6 +497,8 @@ export default function SearchPage() {
           }}
           resultsView={resultsView}
           onResultsViewChange={setResultsView}
+          trackerMark={trackerMark}
+          onTrackerMarkChange={setTrackerMark}
         />
       ) : null}
     </div>

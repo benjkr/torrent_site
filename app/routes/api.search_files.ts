@@ -1,4 +1,5 @@
 import type { LoaderFunctionArgs } from "react-router";
+import { isYtsSearchId } from "../lib/yts.server";
 
 const APYBAY_BASE = "https://apibay.org";
 
@@ -10,6 +11,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
       status: 400,
       headers: { "Content-Type": "application/json" },
     });
+  }
+
+  if (isYtsSearchId(id)) {
+    return { files: [] };
   }
 
   try {
