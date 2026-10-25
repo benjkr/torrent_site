@@ -1,0 +1,40 @@
+---
+description: Per-page Debug button; preserve prior UI behind dev feature flags
+alwaysApply: true
+---
+
+# Page debug flags
+
+## Debug button
+
+- Every page that needs dev-only controls gets a **Debug** button (bottom-right), same pattern as Search / Library (`fixed bottom-4 right-4`, slide-over panel, `BugIcon`).
+- The panel and its toggles render **only when `import.meta.env.DEV`**. Production always uses the current shipped defaults.
+- Keep flags compact (small segmented toggles). Put hints in `title` tooltips, not large cards.
+- Colocate page flags in that page’s debug panel (or a `*DebugPanel` component used only there). Do not dump unrelated flags into other pages.
+
+## Debug design pages (DEV only)
+
+- Temp design / comparison routes are listed in `app/lib/debug-pages.ts` and rendered by `DebugPagesNav` (root): **bottom-right, stacked above the Debug button**, **only when `import.meta.env.DEV`**.
+- When creating a new temp page: add `{ path, label }` to `DEBUG_PAGES`.
+- When deleting a temp page after a winner: remove it from `DEBUG_PAGES` as well as the route.
+
+## When changing UI
+
+When asked to change UI (layout, chrome, colors, components, etc.):
+
+1. **Default: preserve the current UI** behind a **dev-only feature flag** in **that page’s** Debug panel.
+2. Ship the new UI as the default; the flag switches back to the previous version for comparison.
+3. Name flags clearly (e.g. Card: Glass / Legacy, Progress: Cover / Original).
+4. Wire production paths so they **always** take the new default — never the legacy branch — unless `import.meta.env.DEV` and the flag says otherwise.
+
+## Opt out of preserving
+
+If the user says **not** to save / keep / preserve the current UI (e.g. “don’t keep the old one”, “no feature flag”, “replace it”):
+
+- **Do not** add a legacy/flag path.
+- **Notify the user** in the reply that the previous UI was discarded and is not recoverable via Debug.
+
+## Do not
+
+- Leave temp design-comparison routes around after a winner is chosen (see apple-glass design exploration rule).
+- Expose these UI rollback flags outside DEV.

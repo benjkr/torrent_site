@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import type { LinksFunction } from "react-router";
 import {
   Links,
@@ -6,9 +7,15 @@ import {
   Scripts,
   ScrollRestoration,
 } from "react-router";
-import { NavLink } from "react-router";
 
 import "./index.css";
+import { DebugPagesNav } from "@/components/DebugPagesNav";
+import { QbOfflineBanner } from "@/components/QbOfflineBanner";
+import { TopNav } from "@/components/TopNav";
+import { MaindataProvider } from "./lib/maindata";
+import { QbDebugProvider } from "./lib/qb-debug";
+import { QbStatusProvider, useQbStatus } from "./lib/qb-status";
+import { THEME_INIT_SCRIPT } from "./lib/theme";
 
 export const links: LinksFunction = () => [
   {
@@ -22,58 +29,69 @@ export const links: LinksFunction = () => [
   },
 ];
 
-export default function Root() {
+function AppShell() {
+  const { online } = useQbStatus();
+
   return (
-    <html lang="en">
-      <head>
+    <>
+      <TopNav disabled={!online} />
+      <QbOfflineBanner />
+      <main className="mx-auto max-w-7xl px-4 py-6">
+        <Outlet />
+      </main>
+      <DebugPagesNav />
+    </>
+  );
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head suppressHydrationWarning>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
       </head>
-      <body>
-        <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <nav className="mx-auto flex max-w-6xl items-center gap-4 px-4 h-12">
-            <NavLink
-              to="/search"
-              className="font-semibold text-sm tracking-tight hover:text-foreground/80 transition-colors"
-            >
-              Torrent Site
-            </NavLink>
-            <div className="flex items-center gap-2 ml-auto sm:ml-4">
-              <NavLink
-                to="/search"
-                className={({ isActive }) =>
-                  `text-xs px-2 py-1 rounded-md transition-colors ${
-                    isActive
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  }`
-                }
-              >
-                Search
-              </NavLink>
-              <NavLink
-                to="/torrents"
-                className={({ isActive }) =>
-                  `text-xs px-2 py-1 rounded-md transition-colors ${
-                    isActive
-                      ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-accent/50"
-                  }`
-                }
-              >
-                Active Torrents
-              </NavLink>
-            </div>
-          </nav>
-        </header>
-        <main className="mx-auto max-w-6xl px-4 py-6">
-          <Outlet />
-        </main>
+      <body
+        className="min-h-dvh bg-background text-foreground antialiased dark:bg-[#141414]"
+        suppressHydrationWarning
+      >
+        {children}
         <ScrollRestoration />
         <Scripts />
+        {import.meta.env.DEV ? (
+          <script
+            suppressHydrationWarning
+            dangerouslySetInnerHTML={{
+              // Runs at HTML parse time (before hydrate). Survives React replacing
+              // #document on hydration failure and re-attaches wiped Vite/critical CSS.
+              __html: `(function(){function has(){if(document.querySelector("[data-dev-css-recovery],[data-react-router-critical-css]"))return true;var s=document.querySelectorAll("style[data-vite-dev-id]");for(var i=0;i<s.length;i++){if((s[i].getAttribute("data-vite-dev-id")||"").indexOf("index.css")!==-1)return true}return false}function ensure(){if(!document.head||has())return;var l=document.createElement("link");l.rel="stylesheet";l.href="/@react-router/critical.css?pathname="+encodeURIComponent(location.pathname);l.setAttribute("data-dev-css-recovery","");document.head.appendChild(l)}ensure();new MutationObserver(ensure).observe(document,{childList:true,subtree:true});[0,50,100,250,500,1000,2000,4000].forEach(function(ms){setTimeout(ensure,ms)})})();`,
+            }}
+          />
+        ) : null}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `if("serviceWorker"in navigator){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(w){w.unregister()});caches.keys().then(function(ks){ks.forEach(function(k){caches.delete(k)})})})}`,
+          }}
+        />
       </body>
     </html>
+  );
+}
+
+export default function Root() {
+  return (
+    <QbDebugProvider>
+      <MaindataProvider>
+        <QbStatusProvider>
+          <AppShell />
+        </QbStatusProvider>
+      </MaindataProvider>
+    </QbDebugProvider>
   );
 }

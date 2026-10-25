@@ -17,10 +17,34 @@ type Pages = {
   "/search": {
     params: {};
   };
+  "/library": {
+    params: {};
+  };
+  "/settings": {
+    params: {};
+  };
   "/torrents": {
     params: {};
   };
+  "/.well-known/appspecific/com.chrome.devtools.json": {
+    params: {};
+  };
   "/api/search": {
+    params: {};
+  };
+  "/api/search_files": {
+    params: {};
+  };
+  "/api/imdb_search": {
+    params: {};
+  };
+  "/api/imdb_meta": {
+    params: {};
+  };
+  "/api/image_proxy": {
+    params: {};
+  };
+  "/api/tv_show": {
     params: {};
   };
   "/api/download": {
@@ -44,7 +68,16 @@ type Pages = {
   "/api/torrent_files": {
     params: {};
   };
+  "/api/torrent_pieces": {
+    params: {};
+  };
   "/api/download_file": {
+    params: {};
+  };
+  "/api/settings": {
+    params: {};
+  };
+  "/api/qb_status": {
     params: {};
   };
 };
@@ -52,7 +85,7 @@ type Pages = {
 type RouteFiles = {
   "root.tsx": {
     id: "root";
-    page: "/" | "/search" | "/torrents" | "/api/search" | "/api/download" | "/api/torrents" | "/api/torrent/pause" | "/api/torrent/resume" | "/api/torrent/recheck" | "/api/torrent/reannounce" | "/api/torrent_files" | "/api/download_file";
+    page: "/" | "/search" | "/library" | "/settings" | "/torrents" | "/.well-known/appspecific/com.chrome.devtools.json" | "/api/search" | "/api/search_files" | "/api/imdb_search" | "/api/imdb_meta" | "/api/image_proxy" | "/api/tv_show" | "/api/download" | "/api/torrents" | "/api/torrent/pause" | "/api/torrent/resume" | "/api/torrent/recheck" | "/api/torrent/reannounce" | "/api/torrent_files" | "/api/torrent_pieces" | "/api/download_file" | "/api/settings" | "/api/qb_status";
   };
   "./routes/_index.tsx": {
     id: "routes/_index";
@@ -62,13 +95,45 @@ type RouteFiles = {
     id: "routes/search";
     page: "/search";
   };
+  "./routes/library.tsx": {
+    id: "routes/library";
+    page: "/library";
+  };
+  "./routes/settings.tsx": {
+    id: "routes/settings";
+    page: "/settings";
+  };
   "./routes/torrents.tsx": {
     id: "routes/torrents";
     page: "/torrents";
   };
+  "./routes/well-known.chrome-devtools.ts": {
+    id: "routes/well-known.chrome-devtools";
+    page: "/.well-known/appspecific/com.chrome.devtools.json";
+  };
   "./routes/api.search.ts": {
     id: "routes/api.search";
     page: "/api/search";
+  };
+  "./routes/api.search_files.ts": {
+    id: "routes/api.search_files";
+    page: "/api/search_files";
+  };
+  "./routes/api.imdb_search.ts": {
+    id: "routes/api.imdb_search";
+    page: "/api/imdb_search";
+  };
+  "./routes/api.imdb_meta.ts": {
+    id: "routes/api.imdb_meta";
+    page: "/api/imdb_meta";
+  };
+  "./routes/api.image_proxy.ts": {
+    id: "routes/api.image_proxy";
+    page: "/api/image_proxy";
+  };
+  "./routes/api.tv_show.ts": {
+    id: "routes/api.tv_show";
+    page: "/api/tv_show";
   };
   "./routes/api.download.ts": {
     id: "routes/api.download";
@@ -98,9 +163,21 @@ type RouteFiles = {
     id: "routes/api.torrent_files";
     page: "/api/torrent_files";
   };
+  "./routes/api.torrent_pieces.ts": {
+    id: "routes/api.torrent_pieces";
+    page: "/api/torrent_pieces";
+  };
   "./routes/api.download_file.ts": {
     id: "routes/api.download_file";
     page: "/api/download_file";
+  };
+  "./routes/api.settings.ts": {
+    id: "routes/api.settings";
+    page: "/api/settings";
+  };
+  "./routes/api.qb_status.ts": {
+    id: "routes/api.qb_status";
+    page: "/api/qb_status";
   };
 };
 
@@ -108,8 +185,16 @@ type RouteModules = {
   "root": typeof import("./app/root.tsx");
   "routes/_index": typeof import("./app/./routes/_index.tsx");
   "routes/search": typeof import("./app/./routes/search.tsx");
+  "routes/library": typeof import("./app/./routes/library.tsx");
+  "routes/settings": typeof import("./app/./routes/settings.tsx");
   "routes/torrents": typeof import("./app/./routes/torrents.tsx");
+  "routes/well-known.chrome-devtools": typeof import("./app/./routes/well-known.chrome-devtools.ts");
   "routes/api.search": typeof import("./app/./routes/api.search.ts");
+  "routes/api.search_files": typeof import("./app/./routes/api.search_files.ts");
+  "routes/api.imdb_search": typeof import("./app/./routes/api.imdb_search.ts");
+  "routes/api.imdb_meta": typeof import("./app/./routes/api.imdb_meta.ts");
+  "routes/api.image_proxy": typeof import("./app/./routes/api.image_proxy.ts");
+  "routes/api.tv_show": typeof import("./app/./routes/api.tv_show.ts");
   "routes/api.download": typeof import("./app/./routes/api.download.ts");
   "routes/api.torrents": typeof import("./app/./routes/api.torrents.ts");
   "routes/api.torrent.pause": typeof import("./app/./routes/api.torrent.pause.ts");
@@ -117,5 +202,8 @@ type RouteModules = {
   "routes/api.torrent.recheck": typeof import("./app/./routes/api.torrent.recheck.ts");
   "routes/api.torrent.reannounce": typeof import("./app/./routes/api.torrent.reannounce.ts");
   "routes/api.torrent_files": typeof import("./app/./routes/api.torrent_files.ts");
+  "routes/api.torrent_pieces": typeof import("./app/./routes/api.torrent_pieces.ts");
   "routes/api.download_file": typeof import("./app/./routes/api.download_file.ts");
+  "routes/api.settings": typeof import("./app/./routes/api.settings.ts");
+  "routes/api.qb_status": typeof import("./app/./routes/api.qb_status.ts");
 };

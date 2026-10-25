@@ -1,0 +1,25 @@
+---
+description: UI design preference — Apple glass default; temp page for options, then ship winner
+alwaysApply: false
+---
+
+# Design exploration
+
+When asked for **new designs** (variants to pick from):
+
+1. Add a temporary route/page that shows all options in context (mock the real chrome).
+2. **Register it** in `app/lib/debug-pages.ts` (`DEBUG_PAGES`: `{ path, label }`) so it appears in the DEV-only debug pages list (bottom-right, above the Debug button).
+3. After a winner is chosen: implement it on the real page(s), then **delete** the temp route/page, unregister it from `routes.ts`, and **remove** it from `DEBUG_PAGES`.
+
+Do not leave comparison pages around after a choice.
+
+# Apple glass (preference)
+
+Default design options toward Apple-style glass:
+
+- Floating, inset from edges (not edge-flush chrome)
+- Frosted translucency: `backdrop-blur` + light fill (`bg-white/10` range)
+- Soft border (`border-white/20`) and specular highlight (`inset` top shine)
+- Pill / continuous-corner shapes; restrained shadow
+
+**Not mandatory.** If another treatment fits better, use that and say why briefly.
