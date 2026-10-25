@@ -299,7 +299,10 @@ export default function SearchPage() {
   const handleDownload = (hash: string, name: string, imdb?: string) => {
     if (!qbOnline) return;
     const params = new URLSearchParams({ hash, name });
-    if (imdb) params.set("imdb", imdb);
+    // Episode/season name hits may lack an IMDb id; use the selected show so
+    // the download is filed under the show's folder.
+    const imdbId = imdb ?? (epMode ? imdbSelection?.id : undefined);
+    if (imdbId) params.set("imdb", imdbId);
     pendingDownloadRef.current = name;
     downloadFetcher.load(`/api/download?${params}`);
   };
