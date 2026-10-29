@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { qb } from "../lib/qb-client";
 import { IMDB_ASSUMED_TAG, normalizeImdbId } from "../lib/imdb";
+import { resolveSavePath } from "../lib/download-folder";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
@@ -25,7 +26,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
       : imdb
     : undefined;
   try {
-    await qb.addMagnet(magnet, tags ? { tags } : undefined);
+    // Organize into "<Title> (<Year>)" under the default save path; if that
+    // can't be resolved, fall back to qB's default location.
+    const savepath = await resolveSavePath({ name: name || hash, imdb }).catch(
+      () => null,
+    );
+    await qb.addMagnet(magnet, {
+      ...(tags ? { tags } : {}),
+      ...(savepath ? { savepath } : {}),
+    });
     return { status: "ok" };
   } catch (e) {
     return new Response(
