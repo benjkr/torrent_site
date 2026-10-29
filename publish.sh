@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Build/push the current git-tag image to GHCR, then replace container
-# "torrent_site" on the remote host via SSH.
+# Build the current git-tag image on the remote host's Docker daemon (over
+# SSH, no registry), then replace container "torrent_site" there.
 #
-# Authenticates to ghcr.io with GH_TOKEN from .env.production (locally and
-# on the server for private package pulls). App env also comes from that file.
+# App env comes from .env.production.
 #
 # Usage: ./publish.sh <host> <user>
 set -euo pipefail
@@ -12,9 +11,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
 ENV_FILE="$ROOT/.env.production"
-IMAGE_REPO="ghcr.io/benjkr/torrent_site"
-GHCR_USER="${IMAGE_REPO#ghcr.io/}"
-GHCR_USER="${GHCR_USER%%/*}"
+IMAGE_REPO="torrent_site"
 CONTAINER_NAME="torrent_site"
 
 usage() {
@@ -45,7 +42,6 @@ set +a
 
 : "${QB_BASE_URL:?error: QB_BASE_URL must be set in .env.production}"
 : "${QB_USERNAME:?error: QB_USERNAME must be set in .env.production}"
-: "${GH_TOKEN:?error: GH_TOKEN must be set in .env.production}"
 : "${QB_DOWNLOADS_HOST_PATH:?error: QB_DOWNLOADS_HOST_PATH must be set in .env.production (host path of qB downloads volume)}"
 QB_PASSWORD="${QB_PASSWORD:-}"
 LIBRARY_FILES_ROOT="${LIBRARY_FILES_ROOT:-/downloads}"
@@ -62,22 +58,17 @@ IMAGE="${IMAGE_REPO}:${TAG}"
 echo "Publishing ${IMAGE} (commit ${COMMIT})"
 echo "Deploy target: ${REMOTE_USER}@${HOST}"
 
-echo "$GH_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-docker build \
+# Build straight on the server so the image never leaves it.
+docker -H "ssh://${REMOTE_USER}@${HOST}" build \
   --build-arg "VITE_APP_TAG=${TAG}" \
   --build-arg "VITE_APP_COMMIT=${COMMIT}" \
   -t "$IMAGE" \
   .
 
-docker push "$IMAGE"
-
 REMOTE_CMD="$(printf \
-  'IMAGE=%q CONTAINER_NAME=%q GHCR_USER=%q GH_TOKEN=%q QB_BASE_URL=%q QB_USERNAME=%q QB_PASSWORD=%q LIBRARY_FILES_ROOT=%q LIBRARY_FILES_QB_PREFIX=%q QB_DOWNLOADS_HOST_PATH=%q bash -s' \
+  'IMAGE=%q CONTAINER_NAME=%q QB_BASE_URL=%q QB_USERNAME=%q QB_PASSWORD=%q LIBRARY_FILES_ROOT=%q LIBRARY_FILES_QB_PREFIX=%q QB_DOWNLOADS_HOST_PATH=%q bash -s' \
   "$IMAGE" \
   "$CONTAINER_NAME" \
-  "$GHCR_USER" \
-  "$GH_TOKEN" \
   "$QB_BASE_URL" \
   "$QB_USERNAME" \
   "$QB_PASSWORD" \
@@ -88,10 +79,6 @@ REMOTE_CMD="$(printf \
 # shellcheck disable=SC2029
 ssh "${REMOTE_USER}@${HOST}" "$REMOTE_CMD" <<'REMOTE'
 set -euo pipefail
-
-echo "$GH_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-
-docker pull "$IMAGE"
 
 if docker inspect "$CONTAINER_NAME" >/dev/null 2>&1; then
   docker stop "$CONTAINER_NAME"
